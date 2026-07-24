@@ -35,6 +35,19 @@ function toUnixSeconds(value) {
   return Math.floor(new Date(value).getTime() / 1000);
 }
 
+function formatDateTimeLocal(value) {
+  if (!value) return "";
+  const [datePart, timePart] = value.split("T");
+  if (!datePart || !timePart) return value;
+  const [y, m, d] = datePart.split("-");
+  const [h, min] = timePart.split(":");
+  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${monthNames[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y} at ${hour12}:${min} ${ampm} NPT`;
+}
+
 function PhaseTag({ phase, remaining }) {
   const colors = [
     "bg-app-accent/10 text-app-accent border-app-accent/20",
@@ -276,7 +289,7 @@ export default function ElectionControl() {
               variant="green" icon="📝"
               onClick={() => setConfirm({
                 title: "Start Registration Phase",
-                message: "Start Registration phase? Candidates can register. Costs gas.",
+                message: `Start Registration phase?\n\nDeadline: ${formatDateTimeLocal(registrationEnd)}\n\nCandidates can register. Costs gas.`,
                 onConfirm: async () => {
                   setConfirm(null);
                   execute("Start Registration", async () => {
@@ -333,7 +346,7 @@ export default function ElectionControl() {
                 }
                 setConfirm({
                   title: "Start Voting Phase",
-                  message: "Start Voting phase? Candidates locked, voting begins. Costs gas.",
+                  message: `Start Voting phase?\n\nDeadline: ${formatDateTimeLocal(votingEnd)}\n\nCandidates locked, voting begins. Costs gas.`,
                   warning: warningMsg,
                   onConfirm: async () => {
                     setConfirm(null);
