@@ -3,6 +3,7 @@ import { db } from "../db.js";
 import { electionContractV3 } from "../blockchain/electionContract.js";
 import { generateRegCodeMerkleRoot, generateRegCodeMerkleProof } from "../services/merkleService.js";
 import { sendBatchRegistrationCodes } from "../services/emailService.js";
+import { emitEvent } from "../socket.js";
 
 /**
  * Rebuild the registration code Merkle tree from all unused codes in the DB
@@ -172,6 +173,7 @@ export const generateCodes = async (req, res) => {
     if (result.codes.length > 0) {
       try {
         merkleRoot = await rebuildRegCodeMerkleRoot();
+        emitEvent("dataChanged", { type: "registrationCodes" });
       } catch (err) {
         console.error("Failed to update on-chain Merkle root:", err.message);
       }

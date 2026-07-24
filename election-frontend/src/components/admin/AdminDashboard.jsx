@@ -1,4 +1,4 @@
-import { useState, useContext, useRef, useEffect } from "react";
+import { useState, useContext, useRef, useEffect, useCallback } from "react";
 import ElectionControl from "./ElectionControl";
 import VerifyVoter from "./VerifyVoter";
 import GenerateCodes from "./GenerateCodes";
@@ -6,6 +6,9 @@ import GasDistribution from "./GasDistribution";
 
 import { AuthContext } from "../../context/AuthContextValue";
 import { useBalance } from "../../hooks/useBalance";
+import { socket } from "../../socket";
+import { useToast } from "../ui/Toast";
+import { API_URL } from "../../config";
 
 const ETH_ICON = (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -26,6 +29,36 @@ export default function AdminDashboard() {
   const mainSentinelRef = useRef(null);
   const { wallet } = useContext(AuthContext);
   const { balance } = useBalance(wallet);
+  const toast = useToast();
+  const [syncStatus, setSyncStatus] = useState({});
+
+  const checkSync = useCallback(async () => {
+    if (!wallet) return;
+    try {
+      const res = await fetch(`${API_URL}/api/voters/merkle-sync-status?adminWallet=${wallet}`);
+      if (!res.ok) return;
+      setSyncStatus(await res.json());
+    } catch {}
+  }, [wallet]);
+
+  useEffect(() => {
+    const handler = (data) => {
+      if (data?.type === "voters") {
+        toast.info("Voter whitelist changed — Merkle trees rebuilt");
+        checkSync();
+      } else if (data?.type === "registrationCodes") {
+        toast.info("Registration codes updated — Merkle root synced on-chain");
+      }
+    };
+    socket.on("dataChanged", handler);
+    return () => socket.off("dataChanged", handler);
+  }, [toast, checkSync]);
+
+  useEffect(() => {
+    checkSync();
+    const id = setInterval(checkSync, 30000);
+    return () => clearInterval(id);
+  }, [checkSync]);
 
   useEffect(() => {
     const el = mainSentinelRef.current;
@@ -66,6 +99,21 @@ export default function AdminDashboard() {
         {balance !== null && Number(balance) < 0.05 && (
           <div className="mx-4 sm:mx-6 mt-3 sm:mt-4 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-rose-500/20 bg-rose-500/5">
             <p className="text-xs sm:text-base text-rose-400 font-medium">Low balance — {Number(balance).toFixed(4)} ETH</p>
+          </div>
+        )}
+
+        {syncStatus.needsSync === true && (
+          <div className="mx-4 sm:mx-6 mt-3 sm:mt-4 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-amber-500/30 bg-amber-500/10">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-lg sm:text-xl shrink-0">⚠️</span>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-base font-bold text-amber-400">Merkle roots out of sync</p>
+                <p className="text-[10px] sm:text-sm text-amber-300/70 mt-0.5">
+                  {syncStatus.eligibleCount ?? "?"} eligible voters in DB — on-chain root is stale.
+                  Go to <button onClick={() => setTab("controls")} className="underline font-semibold hover:text-amber-200 cursor-pointer">Controls</button> and click "Sync Voter Whitelist".
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
