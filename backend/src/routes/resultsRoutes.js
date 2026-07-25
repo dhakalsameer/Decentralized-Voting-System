@@ -81,10 +81,10 @@ router.get("/my-wins", async (req, res) => {
               eh.vote_count, eh.candidate_photo, eh.candidate_year, eh.candidate_gender
        FROM election_history eh
        LEFT JOIN students s ON LOWER(s.wallet_address) = LOWER($1)
-       WHERE eh.is_winner = true
+       WHERE eh.election_number = (SELECT MAX(election_number) FROM election_history)
+         AND eh.is_winner = true
          AND (LOWER(eh.wallet_address) = LOWER($1)
-              OR (s.name IS NOT NULL AND LOWER(s.name) = LOWER(eh.candidate_name)))
-       ORDER BY eh.election_number DESC`,
+              OR (s.name IS NOT NULL AND LOWER(s.name) = LOWER(eh.candidate_name)))`,
       [wallet]
     );
 
