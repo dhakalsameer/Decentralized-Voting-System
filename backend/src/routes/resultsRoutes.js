@@ -77,8 +77,10 @@ router.get("/my-wins", async (req, res) => {
     if (!wallet) return res.json({ wins: [] });
 
     const result = await db.query(
-      `SELECT eh.election_number, eh.candidate_name, eh.candidate_position,
-              eh.vote_count, eh.candidate_photo, eh.candidate_year, eh.candidate_gender
+      `SELECT eh.election_number,
+              eh.candidate_name AS name, eh.candidate_position AS position,
+              eh.vote_count, eh.candidate_photo AS photo,
+              eh.candidate_year AS year, eh.candidate_gender AS gender
        FROM election_history eh
        LEFT JOIN students s ON LOWER(s.wallet_address) = LOWER($1)
        WHERE eh.election_number = (SELECT MAX(election_number) FROM election_history)
