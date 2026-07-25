@@ -70,30 +70,32 @@ export default function WinnerBanner() {
 
   if (loading || !electionOver || myWins.length === 0) return null;
 
-  const bg = isDark ? "#000" : "linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)";
+  const bg = isDark ? "#000" : "#fffbeb";
   const bgGlow1 = isDark
     ? "radial-gradient(ellipse 80% 50% at 50% -20%,rgba(255,200,50,0.12),transparent)"
-    : "radial-gradient(ellipse 80% 50% at 50% -20%,rgba(255,255,255,0.35),transparent)";
+    : "radial-gradient(ellipse 80% 50% at 50% -20%,rgba(251,191,36,0.08),transparent)";
   const bgGlow2 = isDark
     ? "radial-gradient(ellipse 60% 40% at 50% 120%,rgba(255,150,50,0.08),transparent)"
-    : "radial-gradient(ellipse 60% 40% at 50% 120%,rgba(255,255,200,0.25),transparent)";
-  const shineOpacity = isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.35)";
-  const shineMid = isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.5)";
-  const cardBg = isDark ? "from-amber-400/8 to-transparent" : "from-white/30 to-white/10";
+    : "radial-gradient(ellipse 60% 40% at 50% 120%,rgba(217,119,6,0.05),transparent)";
+  const shineOpacity = isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.08)";
+  const shineMid = isDark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.15)";
+  const cardBg = isDark ? "from-amber-400/8 to-transparent" : "from-amber-50/80 to-white/50";
   const headingGrad = isDark
     ? "from-amber-200 via-yellow-100 to-amber-200"
-    : "from-yellow-900 via-amber-800 to-yellow-900";
-  const borderClr = isDark ? "border-amber-400/15" : "border-amber-200/60";
+    : "from-amber-600 via-yellow-700 to-amber-600";
+  const borderClr = isDark ? "border-amber-400/15" : "border-amber-300/50";
   const trophyShadow = isDark
     ? "drop-shadow-[0_0_20px_rgba(255,200,0,0.6)]"
-    : "drop-shadow-[0_0_25px_rgba(255,200,0,0.5)]";
+    : "drop-shadow-[0_0_20px_rgba(217,119,6,0.3)]";
   const mutedText = isDark ? "#d4a017" : "#92400e";
-  const labelText = isDark ? "#a78b5a" : "#78350f";
-  const bodyText = isDark ? "#fcd34d" : "#451a03";
-  const nameText = isDark ? "#fff" : "#1a0a00";
+  const labelText = isDark ? "#a78b5a" : "#92400e";
+  const bodyText = isDark ? "#fcd34d" : "#78350f";
+  const nameText = isDark ? "#fff" : "#451a03";
   const genderF = isDark ? "text-pink-300 bg-pink-400/12" : "text-pink-700 bg-pink-100";
   const genderM = isDark ? "text-sky-300 bg-sky-400/12" : "text-sky-700 bg-sky-100";
   const ringClr = isDark ? "ring-white/15" : "ring-amber-300/30";
+  const cardBgInner = isDark ? "bg-amber-400/6" : "bg-white/70";
+  const voteBg = isDark ? "rgba(251,191,36,0.1)" : "rgba(255,255,255,0.7)";
 
   return (
     <div
@@ -160,7 +162,6 @@ export default function WinnerBanner() {
               gm: isDark ? "rgba(50,255,150,0.2)" : "rgba(50,200,100,0.3)",
             };
             const posEmoji = w.position === "President" ? "🏛️" : w.position === "Secretary" ? "📜" : "👥";
-            const cardBgInner = isDark ? "bg-amber-400/6" : "bg-white/40";
             return (
               <div
                 key={i}
@@ -199,7 +200,7 @@ export default function WinnerBanner() {
                   </div>
 
                   {/* Votes pill */}
-                  <div className="flex items-center gap-1 backdrop-blur-sm rounded-full px-3 py-1 border border-amber-400/10" style={{background: isDark ? "rgba(251,191,36,0.1)" : "rgba(255,255,255,0.5)"}}>
+                  <div className="flex items-center gap-1 backdrop-blur-sm rounded-full px-3 py-1 border border-amber-400/10" style={{background: voteBg}}>
                     <span className={`text-lg sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r ${isDark ? "from-yellow-200 to-amber-200" : "from-amber-700 to-amber-600"}`}>
                       {Number(w.vote_count)}
                     </span>
