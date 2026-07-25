@@ -22,8 +22,7 @@ export default function WinnerBanner() {
   const { wallet } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [electionOver, setElectionOver] = useState(false);
-  const [winners, setWinners] = useState([]);
-  const [isWinner, setIsWinner] = useState(false);
+  const [myWins, setMyWins] = useState([]);
 
   const myWallet = wallet?.toLowerCase();
 
@@ -45,31 +44,16 @@ export default function WinnerBanner() {
         setElectionOver(over);
 
         if (!over) {
-          setWinners([]);
-          setIsWinner(false);
+          setMyWins([]);
           setLoading(false);
           return;
         }
 
-        const historyRes = await fetch(`${API_URL}/api/results/history`);
-        const history = await historyRes.json();
+        const winnerRes = await fetch(`${API_URL}/api/results/my-wins?wallet=${myWallet}`);
         if (cancelled) return;
-
-        if (!history || history.length === 0) {
-          setLoading(false);
-          return;
-        }
-
-        const latest = history[0];
-        const allWinners = (latest.candidates || []).filter((c) => c.is_winner);
-        setWinners(allWinners);
-
-        const matched = allWinners.some((w) => {
-          const wWallet = (w.wallet_address || "").toLowerCase();
-          if (wWallet && wWallet === myWallet) return true;
-          return false;
-        });
-        setIsWinner(matched);
+        if (!winnerRes.ok) { setLoading(false); return; }
+        const data = await winnerRes.json();
+        setMyWins(data.wins || []);
       } catch (err) {
         console.error("Winner check failed:", err);
       } finally {
@@ -82,12 +66,7 @@ export default function WinnerBanner() {
     return () => { cancelled = true; clearInterval(interval); };
   }, [myWallet]);
 
-  if (loading || !electionOver || winners.length === 0 || !isWinner) return null;
-
-  const myWins = winners.filter((w) => {
-    const wWallet = (w.wallet_address || "").toLowerCase();
-    return wWallet && wWallet === myWallet;
-  });
+  if (loading || !electionOver || myWins.length === 0) return null;
 
   return (
     <div

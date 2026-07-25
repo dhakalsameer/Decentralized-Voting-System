@@ -71,6 +71,29 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+router.get("/my-wins", async (req, res) => {
+  try {
+    const { wallet } = req.query;
+    if (!wallet) return res.json({ wins: [] });
+
+    const result = await db.query(
+      `SELECT eh.election_number, eh.candidate_name, eh.candidate_position,
+              eh.vote_count, eh.candidate_photo, eh.candidate_year, eh.candidate_gender
+       FROM election_history eh
+       LEFT JOIN students s ON LOWER(s.wallet_address) = LOWER($1)
+       WHERE eh.is_winner = true
+         AND (LOWER(eh.wallet_address) = LOWER($1)
+              OR (s.name IS NOT NULL AND LOWER(s.name) = LOWER(eh.candidate_name)))
+       ORDER BY eh.election_number DESC`,
+      [wallet]
+    );
+
+    res.json({ wins: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/history", async (req, res) => {
   try {
     const result = await db.query(
