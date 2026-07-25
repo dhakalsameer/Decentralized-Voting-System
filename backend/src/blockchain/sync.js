@@ -410,9 +410,12 @@ export function startBlockchainSync(io) {
       const result = await db.query(
         `SELECT s.email, s.name AS student_name, eh.candidate_name, eh.candidate_position, eh.vote_count
          FROM election_history eh
-         JOIN candidates c ON c.blockchain_id = eh.blockchain_id
-         JOIN students s ON s.student_id = c.student_id
-         WHERE eh.election_number = $1 AND eh.is_winner = true AND s.email IS NOT NULL AND c.blockchain_id IS NOT NULL`,
+         JOIN students s ON (
+           (eh.wallet_address IS NOT NULL AND LOWER(s.wallet_address) = LOWER(eh.wallet_address))
+           OR
+           (eh.wallet_address IS NULL AND LOWER(s.name) = LOWER(eh.candidate_name))
+         )
+         WHERE eh.election_number = $1 AND eh.is_winner = true AND s.email IS NOT NULL`,
         [electionNum]
       );
 
