@@ -169,7 +169,7 @@ export default function WinnerBanner() {
             <p className="text-sm sm:text-base font-semibold mt-0.5" style={{color: bodyText}}>You won the election</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
+          <div className="flex flex-col gap-2 max-w-xl mx-auto">
             {myWins.map((w, i) => {
               const imgSrc = getImageUrl(w.photo || w.image_cid);
               const isFemale = w.gender === "female";
@@ -193,48 +193,48 @@ export default function WinnerBanner() {
               return (
                 <div
                   key={i}
-                  className={`relative overflow-hidden rounded-xl border ${borderColors[posKey]} ${cardBgInner} p-4 shadow-[0_4px_20px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform hover:scale-[1.02] duration-300 winner-banner-card`}
+                  className={`relative overflow-hidden rounded-xl border ${borderColors[posKey]} ${cardBgInner} p-3 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform hover:scale-[1.02] duration-300 winner-banner-card`}
                   style={{ animationDelay: `${i * 0.15}s` }}
                 >
-                  <div className="absolute -top-6 -right-6 text-4xl opacity-8 select-none pointer-events-none">{posEmoji}</div>
-                  <div className="flex flex-col items-center gap-2.5">
+                  <div className="flex items-center gap-4">
                     {/* Avatar */}
-                    <div className="relative">
+                    <div className="relative shrink-0">
                       <div className={`absolute inset-0 rounded-full bg-amber-400/15 blur-[6px]`} />
                       {imgSrc ? (
-                        <div className={`relative h-16 w-16 sm:h-18 sm:w-18 rounded-full overflow-hidden ring-3 ${ringClr} shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
+                        <div className={`relative h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden ring-3 ${ringClr} shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
                           <img src={imgSrc} alt="" className="h-full w-full object-cover" />
                         </div>
                       ) : (
-                        <div className={`relative h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-amber-400/10 ring-3 ${ringClr} flex items-center justify-center shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
-                          <span className="text-xl">{posEmoji}</span>
+                        <div className={`relative h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-amber-400/10 ring-3 ${ringClr} flex items-center justify-center shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
+                          <span className="text-xl sm:text-2xl">{posEmoji}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Position + Name */}
-                    <div className="text-center">
-                      <div className={`text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-0.5 rounded-full inline-block ${badgeColors[posKey]} mb-1`}>
-                        {w.position}
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[9px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded-full inline-block ${badgeColors[posKey]}`}>
+                          {w.position}
+                        </span>
+                        <span className={`text-[9px] font-bold uppercase tracking-wider ${isFemale ? genderF : genderM}`}>{w.gender}</span>
                       </div>
-                      <p className="text-base sm:text-lg font-black leading-tight drop-shadow-sm" style={{color: nameText}}>{w.name}</p>
+                      <p className="text-sm sm:text-base font-black leading-tight truncate drop-shadow-sm" style={{color: nameText}}>{w.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {w.year && (
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background: isDark ? "rgba(251,191,36,0.1)" : "rgba(251,191,36,0.2)", color: bodyText}}>{fmtYear(w.year)}</span>
+                        )}
+                        <div className="flex items-center gap-1 backdrop-blur-sm rounded-full px-2 py-0.5 border border-amber-400/10" style={{background: voteBg}}>
+                          <span className={`text-sm sm:text-base font-black ${isDark ? "text-yellow-200" : "text-amber-700"}`}>
+                            {Number(w.vote_count)}
+                          </span>
+                          <span className="text-[8px] font-bold uppercase tracking-wider" style={{color: labelText}}>votes</span>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Meta row */}
-                    <div className="flex flex-wrap items-center justify-center gap-1.5">
-                      {w.year && (
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-400/10" style={{color: bodyText}}>{fmtYear(w.year)}</span>
-                      )}
-                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isFemale ? genderF : genderM}`}>{w.gender}</span>
-                    </div>
-
-                    {/* Votes pill */}
-                    <div className="flex items-center gap-1 backdrop-blur-sm rounded-full px-3 py-1 border border-amber-400/10" style={{background: voteBg}}>
-                      <span className={`text-lg sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r ${isDark ? "from-yellow-200 to-amber-200" : "from-amber-700 to-amber-600"}`}>
-                        {Number(w.vote_count)}
-                      </span>
-                      <span className="text-[9px] font-bold uppercase tracking-wider" style={{color: labelText}}>votes</span>
-                    </div>
+                    {/* Position emoji on right */}
+                    <div className="hidden sm:block text-3xl opacity-20 select-none pointer-events-none shrink-0">{posEmoji}</div>
                   </div>
                 </div>
               );
