@@ -208,21 +208,21 @@ export default function WinnerBanner() {
                     {/* Details */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded-full ${badgeColors[posKey]}`}>
+                        <span className={`text-xs sm:text-sm font-black uppercase tracking-[0.15em] px-2.5 py-0.5 rounded-full ${badgeColors[posKey]}`}>
                           {w.position}
                         </span>
                         <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isFemale ? genderF : genderM}`}>{w.gender}</span>
                       </div>
-                      <p className="text-sm sm:text-base font-black leading-tight truncate drop-shadow-sm mt-0.5" style={{color: nameText}}>{w.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <p className="text-base sm:text-xl font-black leading-tight truncate drop-shadow-sm mt-0.5" style={{color: nameText}}>{w.name}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
                         {w.year && (
                           <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background: isDark ? "rgba(251,191,36,0.1)" : "rgba(251,191,36,0.2)", color: bodyText}}>{fmtYear(w.year)}</span>
                         )}
-                        <div className="flex items-center gap-1 rounded-full px-2 py-0.5 border border-amber-400/10" style={{background: voteBg}}>
-                          <span className={`text-sm sm:text-base font-black leading-none ${isDark ? "text-yellow-200" : "text-amber-700"}`}>
+                        <div className="flex items-center gap-1.5 rounded-full px-3 py-1 border border-amber-400/15" style={{background: voteBg}}>
+                          <span className={`text-lg sm:text-xl font-black leading-none ${isDark ? "text-yellow-200" : "text-amber-700"}`}>
                             {Number(w.vote_count)}
                           </span>
-                          <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider leading-none" style={{color: labelText}}>votes</span>
+                          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider leading-none" style={{color: labelText}}>votes</span>
                         </div>
                       </div>
                     </div>
