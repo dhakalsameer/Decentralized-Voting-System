@@ -421,7 +421,7 @@ export const forgotPassword = async (req, res) => {
 
     // Allow using registration code regardless of `used` status
     const codeResult = await db.query(
-      "SELECT id FROM registration_codes WHERE student_id = $1 AND code = $2",
+      "SELECT id FROM registration_codes WHERE student_id = $1 AND REPLACE(code, '-', '') = $2",
       [student_id, code]
     );
     if (codeResult.rows.length === 0) {
