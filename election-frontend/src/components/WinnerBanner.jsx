@@ -191,38 +191,38 @@ export default function WinnerBanner() {
                   className={`relative rounded-xl border ${borderColors[posKey]} ${cardBgInner} p-3 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.25)] transition-transform hover:scale-[1.02] duration-300 winner-banner-card`}
                   style={{ animationDelay: `${i * 0.15}s` }}
                 >
-                  <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-4 sm:gap-6">
                     {/* Avatar */}
                     <div className="shrink-0">
                       {imgSrc ? (
-                        <div className={`h-12 w-12 sm:h-14 sm:w-14 rounded-full overflow-hidden ring-2 ${ringClr}`}>
+                        <div className={`h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden ring-3 ${ringClr}`}>
                           <img src={imgSrc} alt="" className="h-full w-full object-cover" />
                         </div>
                       ) : (
-                        <div className={`h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-amber-400/10 ring-2 ${ringClr} flex items-center justify-center`}>
-                          <span className="text-lg sm:text-xl">{posEmoji}</span>
+                        <div className={`h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-amber-400/10 ring-3 ${ringClr} flex items-center justify-center`}>
+                          <span className="text-2xl sm:text-3xl">{posEmoji}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs sm:text-sm font-black uppercase tracking-[0.15em] px-2.5 py-0.5 rounded-full ${badgeColors[posKey]}`}>
+                      <div className="flex items-center gap-2.5">
+                        <span className={`text-sm sm:text-lg font-black uppercase tracking-[0.15em] px-3 py-1 rounded-full ${badgeColors[posKey]}`}>
                           {w.position}
                         </span>
-                        <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isFemale ? genderF : genderM}`}>{w.gender}</span>
+                        <span className={`text-xs sm:text-sm font-bold uppercase tracking-wider ${isFemale ? genderF : genderM}`}>{w.gender}</span>
                       </div>
-                      <p className="text-base sm:text-xl font-black leading-tight truncate drop-shadow-sm mt-0.5" style={{color: nameText}}>{w.name}</p>
-                      <div className="flex items-center gap-2 mt-1.5">
+                      <p className="text-lg sm:text-2xl font-black leading-tight truncate drop-shadow-sm mt-1" style={{color: nameText}}>{w.name}</p>
+                      <div className="flex items-center gap-3 mt-2">
                         {w.year && (
-                          <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background: isDark ? "rgba(251,191,36,0.1)" : "rgba(251,191,36,0.2)", color: bodyText}}>{fmtYear(w.year)}</span>
+                          <span className="text-xs sm:text-sm font-bold px-3 py-1 rounded-full" style={{background: isDark ? "rgba(251,191,36,0.1)" : "rgba(251,191,36,0.2)", color: bodyText}}>{fmtYear(w.year)}</span>
                         )}
-                        <div className="flex items-center gap-1.5 rounded-full px-3 py-1 border border-amber-400/15" style={{background: voteBg}}>
-                          <span className={`text-lg sm:text-xl font-black leading-none ${isDark ? "text-yellow-200" : "text-amber-700"}`}>
+                        <div className="flex items-center gap-1.5 rounded-full px-4 py-1.5 border border-amber-400/15" style={{background: voteBg}}>
+                          <span className={`text-xl sm:text-2xl font-black leading-none ${isDark ? "text-yellow-200" : "text-amber-700"}`}>
                             {Number(w.vote_count)}
                           </span>
-                          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider leading-none" style={{color: labelText}}>votes</span>
+                          <span className="text-xs sm:text-sm font-bold uppercase tracking-wider leading-none" style={{color: labelText}}>votes</span>
                         </div>
                       </div>
                     </div>
