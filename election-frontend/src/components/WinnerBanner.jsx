@@ -184,57 +184,48 @@ export default function WinnerBanner() {
                 sec: isDark ? "bg-sky-500/15 text-sky-300" : "bg-sky-100 text-sky-800",
                 gm: isDark ? "bg-emerald-500/15 text-emerald-300" : "bg-emerald-100 text-emerald-800",
               };
-              const glowColors = {
-                prez: isDark ? "rgba(255,200,0,0.25)" : "rgba(255,200,0,0.35)",
-                sec: isDark ? "rgba(100,200,255,0.2)" : "rgba(100,200,255,0.3)",
-                gm: isDark ? "rgba(50,255,150,0.2)" : "rgba(50,200,100,0.3)",
-              };
               const posEmoji = w.position === "President" ? "🏛️" : w.position === "Secretary" ? "📜" : "👥";
               return (
                 <div
                   key={i}
-                  className={`relative overflow-hidden rounded-xl border ${borderColors[posKey]} ${cardBgInner} p-3 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform hover:scale-[1.02] duration-300 winner-banner-card`}
+                  className={`relative rounded-xl border ${borderColors[posKey]} ${cardBgInner} p-3 sm:p-4 shadow-[0_4px_20px_rgba(0,0,0,0.25)] transition-transform hover:scale-[1.02] duration-300 winner-banner-card`}
                   style={{ animationDelay: `${i * 0.15}s` }}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     {/* Avatar */}
-                    <div className="relative shrink-0">
-                      <div className={`absolute inset-0 rounded-full bg-amber-400/15 blur-[6px]`} />
+                    <div className="shrink-0">
                       {imgSrc ? (
-                        <div className={`relative h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden ring-3 ${ringClr} shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
+                        <div className={`h-12 w-12 sm:h-14 sm:w-14 rounded-full overflow-hidden ring-2 ${ringClr}`}>
                           <img src={imgSrc} alt="" className="h-full w-full object-cover" />
                         </div>
                       ) : (
-                        <div className={`relative h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-amber-400/10 ring-3 ${ringClr} flex items-center justify-center shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
-                          <span className="text-xl sm:text-2xl">{posEmoji}</span>
+                        <div className={`h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-amber-400/10 ring-2 ${ringClr} flex items-center justify-center`}>
+                          <span className="text-lg sm:text-xl">{posEmoji}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[9px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded-full inline-block ${badgeColors[posKey]}`}>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded-full ${badgeColors[posKey]}`}>
                           {w.position}
                         </span>
-                        <span className={`text-[9px] font-bold uppercase tracking-wider ${isFemale ? genderF : genderM}`}>{w.gender}</span>
+                        <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isFemale ? genderF : genderM}`}>{w.gender}</span>
                       </div>
-                      <p className="text-sm sm:text-base font-black leading-tight truncate drop-shadow-sm" style={{color: nameText}}>{w.name}</p>
+                      <p className="text-sm sm:text-base font-black leading-tight truncate drop-shadow-sm mt-0.5" style={{color: nameText}}>{w.name}</p>
                       <div className="flex items-center gap-2 mt-1">
                         {w.year && (
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{background: isDark ? "rgba(251,191,36,0.1)" : "rgba(251,191,36,0.2)", color: bodyText}}>{fmtYear(w.year)}</span>
+                          <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full" style={{background: isDark ? "rgba(251,191,36,0.1)" : "rgba(251,191,36,0.2)", color: bodyText}}>{fmtYear(w.year)}</span>
                         )}
-                        <div className="flex items-center gap-1 backdrop-blur-sm rounded-full px-2 py-0.5 border border-amber-400/10" style={{background: voteBg}}>
-                          <span className={`text-sm sm:text-base font-black ${isDark ? "text-yellow-200" : "text-amber-700"}`}>
+                        <div className="flex items-center gap-1 rounded-full px-2 py-0.5 border border-amber-400/10" style={{background: voteBg}}>
+                          <span className={`text-sm sm:text-base font-black leading-none ${isDark ? "text-yellow-200" : "text-amber-700"}`}>
                             {Number(w.vote_count)}
                           </span>
-                          <span className="text-[8px] font-bold uppercase tracking-wider" style={{color: labelText}}>votes</span>
+                          <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider leading-none" style={{color: labelText}}>votes</span>
                         </div>
                       </div>
                     </div>
-
-                    {/* Position emoji on right */}
-                    <div className="hidden sm:block text-3xl opacity-20 select-none pointer-events-none shrink-0">{posEmoji}</div>
                   </div>
                 </div>
               );
