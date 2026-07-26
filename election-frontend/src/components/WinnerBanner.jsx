@@ -98,125 +98,155 @@ export default function WinnerBanner() {
   const voteBg = isDark ? "rgba(251,191,36,0.1)" : "rgba(255,255,255,0.7)";
 
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl border border-amber-400/20 p-2 shadow-2xl"
-      style={{ background: bg }}
-    >
-      <div className="absolute inset-0 pointer-events-none" style={{ background: bgGlow1 }} />
-      <div className="absolute inset-0 pointer-events-none" style={{ background: bgGlow2 }} />
-
-      {/* Animated floating emojis */}
-      {WINNER_EMOJIS.map((emoji, i) => (
-        <span
-          key={i}
-          className="absolute select-none pointer-events-none animate-pulse"
-          style={{
-            top: `${10 + Math.sin(i * 1.2) * 40 + 20}%`,
-            left: `${(i / WINNER_EMOJIS.length) * 90 + 5}%`,
-            fontSize: `${0.8 + (i % 3) * 0.4}rem`,
-            opacity: isDark ? 0.15 + (i % 4) * 0.08 : 0.25 + (i % 4) * 0.12,
-            animationDelay: `${i * 0.3}s`,
-            animationDuration: `${2 + (i % 3)}s`,
-          }}
-        >
-          {emoji}
-        </span>
-      ))}
-
-      {/* Shine sweep */}
+    <>
+      <style>{`
+        @keyframes trophy-bob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes glow-pulse {
+          0%, 100% { box-shadow: 0 0 8px rgba(251,191,36,0.2); }
+          50% { box-shadow: 0 0 25px rgba(251,191,36,0.4); }
+        }
+        @keyframes shimmer-slide {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes card-fade-in {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .winner-banner-glow { animation: glow-pulse 3s ease-in-out infinite; }
+        .winner-banner-trophy { animation: trophy-bob 2.5s ease-in-out infinite; }
+        .winner-banner-shimmer {
+          background-size: 200% auto;
+          animation: shimmer-slide 4s linear infinite;
+        }
+        .winner-banner-card {
+          animation: card-fade-in 0.6s ease-out both;
+        }
+      `}</style>
       <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `linear-gradient(105deg,transparent_30%,${shineOpacity}_45%,${shineMid}_50%,${shineOpacity}_55%,transparent_70%)`,
-        }}
-      />
+        className="relative overflow-hidden rounded-2xl border border-amber-400/20 p-2 shadow-2xl winner-banner-glow"
+        style={{ background: bg }}
+      >
+        <div className="absolute inset-0 pointer-events-none" style={{ background: bgGlow1 }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: bgGlow2 }} />
 
-      <div className={`relative z-10 rounded-xl border ${borderClr} bg-gradient-to-b ${cardBg} p-4 sm:p-6 backdrop-blur-[2px]`}>
-        {/* Trophy */}
-        <div className="flex flex-col items-center mb-4">
-          <span className={`text-6xl sm:text-8xl mb-2 ${trophyShadow}`}>🏆</span>
-          <h3 className={`text-2xl sm:text-4xl font-black leading-tight text-transparent bg-clip-text bg-gradient-to-r ${headingGrad}`}>
-            Congratulations!
-          </h3>
-          <p className="text-sm sm:text-base font-semibold mt-0.5" style={{color: bodyText}}>You won the election</p>
-        </div>
+        {/* Animated floating emojis */}
+        {WINNER_EMOJIS.map((emoji, i) => (
+          <span
+            key={i}
+            className="absolute select-none pointer-events-none animate-pulse"
+            style={{
+              top: `${10 + Math.sin(i * 1.2) * 40 + 20}%`,
+              left: `${(i / WINNER_EMOJIS.length) * 90 + 5}%`,
+              fontSize: `${0.8 + (i % 3) * 0.4}rem`,
+              opacity: isDark ? 0.15 + (i % 4) * 0.08 : 0.25 + (i % 4) * 0.12,
+              animationDelay: `${i * 0.3}s`,
+              animationDuration: `${2 + (i % 3)}s`,
+            }}
+          >
+            {emoji}
+          </span>
+        ))}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
-          {myWins.map((w, i) => {
-            const imgSrc = getImageUrl(w.photo || w.image_cid);
-            const isFemale = w.gender === "female";
-            const posKey = w.position === "President" ? "prez" : w.position === "Secretary" ? "sec" : "gm";
-            const borderColors = {
-              prez: "border-yellow-400/30",
-              sec: "border-sky-400/30",
-              gm: "border-emerald-400/30",
-            };
-            const badgeColors = {
-              prez: isDark ? "bg-yellow-500/15 text-yellow-300" : "bg-yellow-100 text-yellow-800",
-              sec: isDark ? "bg-sky-500/15 text-sky-300" : "bg-sky-100 text-sky-800",
-              gm: isDark ? "bg-emerald-500/15 text-emerald-300" : "bg-emerald-100 text-emerald-800",
-            };
-            const glowColors = {
-              prez: isDark ? "rgba(255,200,0,0.25)" : "rgba(255,200,0,0.35)",
-              sec: isDark ? "rgba(100,200,255,0.2)" : "rgba(100,200,255,0.3)",
-              gm: isDark ? "rgba(50,255,150,0.2)" : "rgba(50,200,100,0.3)",
-            };
-            const posEmoji = w.position === "President" ? "🏛️" : w.position === "Secretary" ? "📜" : "👥";
-            return (
-              <div
-                key={i}
-                className={`relative overflow-hidden rounded-xl border ${borderColors[posKey]} ${cardBgInner} p-4 shadow-[0_4px_20px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform hover:scale-[1.02] duration-300`}
-              >
-                <div className="absolute -top-6 -right-6 text-4xl opacity-8 select-none pointer-events-none">{posEmoji}</div>
-                <div className="flex flex-col items-center gap-2.5">
-                  {/* Avatar */}
-                  <div className="relative">
-                    <div className={`absolute inset-0 rounded-full bg-amber-400/15 blur-[6px]`} />
-                    {imgSrc ? (
-                      <div className={`relative h-16 w-16 sm:h-18 sm:w-18 rounded-full overflow-hidden ring-3 ${ringClr} shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
-                        <img src={imgSrc} alt="" className="h-full w-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className={`relative h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-amber-400/10 ring-3 ${ringClr} flex items-center justify-center shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
-                        <span className="text-xl">{posEmoji}</span>
-                      </div>
-                    )}
-                  </div>
+        {/* Shine sweep */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `linear-gradient(105deg,transparent_30%,${shineOpacity}_45%,${shineMid}_50%,${shineOpacity}_55%,transparent_70%)`,
+          }}
+        />
 
-                  {/* Position + Name */}
-                  <div className="text-center">
-                    <div className={`text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-0.5 rounded-full inline-block ${badgeColors[posKey]} mb-1`}>
-                      {w.position}
+        <div className={`relative z-10 rounded-xl border ${borderClr} bg-gradient-to-b ${cardBg} p-4 sm:p-6 backdrop-blur-[2px]`}>
+          {/* Trophy */}
+          <div className="flex flex-col items-center mb-4">
+            <span className={`text-6xl sm:text-8xl mb-2 ${trophyShadow} winner-banner-trophy`}>🏆</span>
+            <h3 className={`text-2xl sm:text-4xl font-black leading-tight text-transparent bg-clip-text bg-gradient-to-r ${headingGrad} winner-banner-shimmer`}>
+              Congratulations!
+            </h3>
+            <p className="text-sm sm:text-base font-semibold mt-0.5" style={{color: bodyText}}>You won the election</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
+            {myWins.map((w, i) => {
+              const imgSrc = getImageUrl(w.photo || w.image_cid);
+              const isFemale = w.gender === "female";
+              const posKey = w.position === "President" ? "prez" : w.position === "Secretary" ? "sec" : "gm";
+              const borderColors = {
+                prez: "border-yellow-400/30",
+                sec: "border-sky-400/30",
+                gm: "border-emerald-400/30",
+              };
+              const badgeColors = {
+                prez: isDark ? "bg-yellow-500/15 text-yellow-300" : "bg-yellow-100 text-yellow-800",
+                sec: isDark ? "bg-sky-500/15 text-sky-300" : "bg-sky-100 text-sky-800",
+                gm: isDark ? "bg-emerald-500/15 text-emerald-300" : "bg-emerald-100 text-emerald-800",
+              };
+              const glowColors = {
+                prez: isDark ? "rgba(255,200,0,0.25)" : "rgba(255,200,0,0.35)",
+                sec: isDark ? "rgba(100,200,255,0.2)" : "rgba(100,200,255,0.3)",
+                gm: isDark ? "rgba(50,255,150,0.2)" : "rgba(50,200,100,0.3)",
+              };
+              const posEmoji = w.position === "President" ? "🏛️" : w.position === "Secretary" ? "📜" : "👥";
+              return (
+                <div
+                  key={i}
+                  className={`relative overflow-hidden rounded-xl border ${borderColors[posKey]} ${cardBgInner} p-4 shadow-[0_4px_20px_rgba(0,0,0,0.25)] backdrop-blur-sm transition-transform hover:scale-[1.02] duration-300 winner-banner-card`}
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                >
+                  <div className="absolute -top-6 -right-6 text-4xl opacity-8 select-none pointer-events-none">{posEmoji}</div>
+                  <div className="flex flex-col items-center gap-2.5">
+                    {/* Avatar */}
+                    <div className="relative">
+                      <div className={`absolute inset-0 rounded-full bg-amber-400/15 blur-[6px]`} />
+                      {imgSrc ? (
+                        <div className={`relative h-16 w-16 sm:h-18 sm:w-18 rounded-full overflow-hidden ring-3 ${ringClr} shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
+                          <img src={imgSrc} alt="" className="h-full w-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className={`relative h-16 w-16 sm:h-18 sm:w-18 rounded-full bg-amber-400/10 ring-3 ${ringClr} flex items-center justify-center shadow-[0_0_20px_var(--glow)]`} style={{"--glow": glowColors[posKey]}}>
+                          <span className="text-xl">{posEmoji}</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-base sm:text-lg font-black leading-tight drop-shadow-sm" style={{color: nameText}}>{w.name}</p>
-                  </div>
 
-                  {/* Meta row */}
-                  <div className="flex flex-wrap items-center justify-center gap-1.5">
-                    {w.year && (
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-400/10" style={{color: bodyText}}>{fmtYear(w.year)}</span>
-                    )}
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isFemale ? genderF : genderM}`}>{w.gender}</span>
-                  </div>
+                    {/* Position + Name */}
+                    <div className="text-center">
+                      <div className={`text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-0.5 rounded-full inline-block ${badgeColors[posKey]} mb-1`}>
+                        {w.position}
+                      </div>
+                      <p className="text-base sm:text-lg font-black leading-tight drop-shadow-sm" style={{color: nameText}}>{w.name}</p>
+                    </div>
 
-                  {/* Votes pill */}
-                  <div className="flex items-center gap-1 backdrop-blur-sm rounded-full px-3 py-1 border border-amber-400/10" style={{background: voteBg}}>
-                    <span className={`text-lg sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r ${isDark ? "from-yellow-200 to-amber-200" : "from-amber-700 to-amber-600"}`}>
-                      {Number(w.vote_count)}
-                    </span>
-                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{color: labelText}}>votes</span>
+                    {/* Meta row */}
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
+                      {w.year && (
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-400/10" style={{color: bodyText}}>{fmtYear(w.year)}</span>
+                      )}
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isFemale ? genderF : genderM}`}>{w.gender}</span>
+                    </div>
+
+                    {/* Votes pill */}
+                    <div className="flex items-center gap-1 backdrop-blur-sm rounded-full px-3 py-1 border border-amber-400/10" style={{background: voteBg}}>
+                      <span className={`text-lg sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r ${isDark ? "from-yellow-200 to-amber-200" : "from-amber-700 to-amber-600"}`}>
+                        {Number(w.vote_count)}
+                      </span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider" style={{color: labelText}}>votes</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        {/* Bottom flourish */}
-        <div className="mt-4 text-center">
-          <p className="text-[10px] font-medium italic" style={{color: mutedText}}>Decentralized &middot; Transparent &middot; Verifiable</p>
+          {/* Bottom flourish */}
+          <div className="mt-4 text-center">
+            <p className="text-[10px] font-medium italic" style={{color: mutedText}}>Decentralized &middot; Transparent &middot; Verifiable</p>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
