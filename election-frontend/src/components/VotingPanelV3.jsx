@@ -6,6 +6,8 @@ import { getProof } from "../utils/merkle";
 import { useBalance } from "../hooks/useBalance";
 import { useToast } from "./ui/Toast";
 import { formatContractError } from "../utils/errors";
+import { getImageUrl } from "../utils/ipfs";
+import IpfsImage from "./ui/IpfsImage";
 
 function formatTime(ts) {
   if (!ts) return "";
@@ -22,13 +24,6 @@ function formatRemaining(seconds) {
   if (h > 0) return `${h}h ${p(m)}m ${p(s)}s`;
   if (m > 0) return `${m}m ${p(s)}s`;
   return `${s}s`;
-}
-
-function getImageUrl(cid) {
-  if (!cid) return "";
-  if (cid.startsWith("http")) return cid;
-  if (cid.startsWith("local:")) return `${API_URL}/uploads/${cid.slice(6)}`;
-  return `https://ipfs.io/ipfs/${cid}`;
 }
 
 const GM_MAX = 5;
@@ -64,7 +59,7 @@ function CandidateCard({ candidate, selected, onToggle, disabled: forceDisabled,
 
       <div className="h-16 w-16 shrink-0 rounded-xl overflow-hidden border-2 border-app-border/20 shadow-sm">
         {url && !imgErr ? (
-          <img src={url} alt="" className="h-full w-full object-cover" onError={() => setImgErr(true)} />
+          <IpfsImage cid={candidate.imageCID} alt="" className="h-full w-full object-cover" onError={() => setImgErr(true)} />
         ) : (
           <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-amber-300 via-emerald-500 to-sky-500 text-base font-black text-slate-950">
             {initials}

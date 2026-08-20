@@ -4,13 +4,8 @@ import { AuthContext } from "../../context/AuthContextValue";
 import WalletButton from "../WalletButton";
 import ThemeToggle from "./ThemeToggle";
 import { API_URL, SEPOLIA_EXPLORER, CONTRACT_ADDRESS_V3 } from "../../config";
-
-function getImageUrl(imageCid) {
-  if (!imageCid) return null;
-  if (imageCid.startsWith("local:")) return `${API_URL}/uploads/${imageCid.slice(6)}`;
-  if (imageCid.startsWith("http")) return imageCid;
-  return `https://ipfs.io/ipfs/${imageCid}`;
-}
+import { getImageUrl } from "../../utils/ipfs";
+import IpfsImage from "./IpfsImage";
 
 function VoterAvatar({ student }) {
   if (!student) return null;
@@ -20,7 +15,7 @@ function VoterAvatar({ student }) {
   return (
     <div className="h-8 w-8 rounded-lg overflow-hidden border border-app shrink-0">
       {url ? (
-        <img src={url} alt="" className="h-full w-full object-cover" />
+        <IpfsImage cid={student?.image_cid} alt="" className="h-full w-full object-cover" />
       ) : (
         <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-sky-500 text-[10px] font-black text-slate-950">
           {initials}

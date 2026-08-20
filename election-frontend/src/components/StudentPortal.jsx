@@ -7,13 +7,8 @@ import { useBalance } from "../hooks/useBalance";
 import BlockExplorerLink from "./ui/BlockExplorerLink";
 import { useToast } from "./ui/Toast";
 import { formatAPIError } from "../utils/errors";
-
-function getImageUrl(imageCid) {
-  if (!imageCid) return null;
-  if (imageCid.startsWith("local:")) return `${API_URL}/uploads/${imageCid.slice(6)}`;
-  if (imageCid.startsWith("http")) return imageCid;
-  return `https://ipfs.io/ipfs/${imageCid}`;
-}
+import { getImageUrl } from "../utils/ipfs";
+import IpfsImage from "./ui/IpfsImage";
 
 const WALLET_MESSAGE = "Gandaki University Election Wallet Verification";
 const PortalContext = createContext(null);
@@ -682,7 +677,7 @@ function ProfileCard({ student, onPhotoChange }) {
       <div className="relative group">
         <div className="h-16 w-16 rounded-xl overflow-hidden border border-app bg-app-elevated">
           {imageUrl ? (
-            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+            <IpfsImage cid={student.image_cid} alt="" className="h-full w-full object-cover" />
           ) : (
             <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 text-lg font-black text-slate-950">
               {initials}

@@ -8,6 +8,7 @@ import jsPDF from "jspdf";
 import { API_URL } from "../config";
 import { useToast } from "./ui/Toast";
 import { LiveResults } from "./Results";
+import { getImageUrl as _ipfsGetImageUrl } from "../utils/ipfs";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ec4899", "#8b5cf6", "#0ea5e9"];
 
@@ -105,10 +106,7 @@ export default function AnalyticsDashboard() {
   }, [displayData]);
 
   function getImageUrl(cid) {
-    if (!cid) return null;
-    if (cid.startsWith("local:")) return `${API_URL}/uploads/${cid.slice(6)}`;
-    if (cid.startsWith("http")) return cid;
-    return `https://ipfs.io/ipfs/${cid}`;
+    return _ipfsGetImageUrl(cid);
   }
 
   function fmtYear(y) {

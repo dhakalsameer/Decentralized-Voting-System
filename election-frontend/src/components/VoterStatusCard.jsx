@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { API_URL } from "../config";
-
-function getImageUrl(cid) {
-  if (!cid) return "";
-  if (cid.startsWith("http")) return cid;
-  if (cid.startsWith("local:")) return `${API_URL}/uploads/${cid.slice(6)}`;
-  return `https://ipfs.io/ipfs/${cid}`;
-}
+import { getImageUrl } from "../utils/ipfs";
+import IpfsImage from "./ui/IpfsImage";
 
 const STEP_META = [
   { label: "Register", icon: "📋" },
@@ -51,8 +46,8 @@ export default function VoterStatusCard({ voterStatus, balance }) {
     <div className="rounded-2xl border border-app/80 bg-app-surface shadow-card p-5 space-y-4">
       <div className="flex items-center gap-3">
         {photoUrl && !imgErr ? (
-          <img
-            src={photoUrl}
+          <IpfsImage
+            cid={voterStatus.image_cid}
             alt=""
             className="h-12 w-12 shrink-0 rounded-xl object-cover border border-app shadow-sm"
             onError={() => setImgErr(true)}

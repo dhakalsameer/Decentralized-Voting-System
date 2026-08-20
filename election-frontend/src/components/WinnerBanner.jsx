@@ -2,13 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContextValue";
 import { useTheme } from "../context/ThemeContext";
 import { API_URL } from "../config";
-
-function getImageUrl(cid) {
-  if (!cid) return null;
-  if (cid.startsWith("local:")) return `${API_URL}/uploads/${cid.slice(6)}`;
-  if (cid.startsWith("http")) return cid;
-  return `https://ipfs.io/ipfs/${cid}`;
-}
+import IpfsImage from "./ui/IpfsImage";
 
 function fmtYear(y) {
   if (!y) return "";
@@ -171,7 +165,7 @@ export default function WinnerBanner() {
 
           <div className="flex flex-col gap-2 max-w-xl mx-auto">
             {myWins.map((w, i) => {
-              const imgSrc = getImageUrl(w.photo || w.image_cid);
+              const hasPhoto = !!(w.photo || w.image_cid);
               const isFemale = w.gender === "female";
               const posKey = w.position === "President" ? "prez" : w.position === "Secretary" ? "sec" : "gm";
               const borderColors = {
@@ -194,9 +188,9 @@ export default function WinnerBanner() {
                   <div className="flex items-center gap-4 sm:gap-6">
                     {/* Avatar */}
                     <div className="shrink-0">
-                      {imgSrc ? (
+                      {hasPhoto ? (
                         <div className={`h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden ring-3 ${ringClr}`}>
-                          <img src={imgSrc} alt="" className="h-full w-full object-cover" />
+                          <IpfsImage cid={w.photo || w.image_cid} alt="" className="h-full w-full object-cover" />
                         </div>
                       ) : (
                         <div className={`h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-amber-400/10 ring-3 ${ringClr} flex items-center justify-center`}>

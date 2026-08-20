@@ -6,6 +6,7 @@ import { API_URL } from "../config";
 import { useToast } from "./ui/Toast";
 import BlockExplorerLink from "./ui/BlockExplorerLink";
 import { formatContractError } from "../utils/errors";
+import { getImageUrl } from "../utils/ipfs";
 
 const POSITIONS = [
   { value: 0, label: "President", icon: "👤", description: "Lead the IT Club", minYear: 4, maxYear: 4 },
@@ -35,13 +36,7 @@ export default function CandidateSelfRegister({ student, regEnd }) {
   const [imageCID, setImageCID] = useState(student?.image_cid || "");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(
-    student?.image_cid
-      ? student.image_cid.startsWith("local:")
-        ? `${API_URL}/uploads/${student.image_cid.slice(6)}`
-        : student.image_cid.startsWith("http")
-          ? student.image_cid
-          : `https://ipfs.io/ipfs/${student.image_cid}`
-      : null
+    student?.image_cid ? getImageUrl(student.image_cid) : null
   );
   const fileInputRef = useRef(null);
   const [loadingPhase, setLoadingPhase] = useState(false);

@@ -4,16 +4,10 @@ import { getContractV3 } from "../contract";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useToast } from "./ui/Toast";
+import { getImageUrl } from "../utils/ipfs";
 
 
 const POSITIONS = ["President", "Secretary", "General Member"];
-
-function getImageUrl(cid) {
-  if (!cid) return null;
-  if (cid.startsWith("local:")) return `${API_URL}/uploads/${cid.slice(6)}`;
-  if (cid.startsWith("http")) return cid;
-  return `https://ipfs.io/ipfs/${cid}`;
-}
 
 function fmtYear(y) {
   if (!y) return "";
