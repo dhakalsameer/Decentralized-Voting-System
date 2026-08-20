@@ -124,7 +124,7 @@ export default function CandidateSelfRegister({ student, regEnd }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
-      setImageCID(data.url);
+      setImageCID(data.cid);
       setPhotoPreview(URL.createObjectURL(file));
     } catch (err) {
       showError(err.message || "Photo upload failed");

@@ -110,18 +110,29 @@ export function startBlockchainSync(io) {
         if (cand.exists) {
           const id = Number(cand.id);
           const position = positionToString(cand.position);
-            await db.query(
-              `INSERT INTO candidates (blockchain_id, name, position, vote_count, year, gender, image_cid, status, wallet_address)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, 'approved', $8)
-               ON CONFLICT (blockchain_id) WHERE blockchain_id IS NOT NULL
-               DO UPDATE SET name = $2, position = $3, vote_count = $4, wallet_address = $8,
-                             year = $5, gender = $6, image_cid = $7, status = 'approved'`,
-              [
-                id, cand.name, position, Number(cand.voteCount),
-                String(cand.year), cand.isFemale ? "female" : "male",
-                cand.imageCID || null, log.args.candidate,
-              ]
-            );
+          // Prefer the student's DB-backed photo reference (db:student:...) when
+          // available so photos are served from the database, not flaky IPFS
+          // gateways. Falls back to the on-chain imageCID for legacy candidates.
+          const studentRef = await db.query(
+            `SELECT image_cid FROM students
+             WHERE LOWER(wallet_address) = LOWER($1)
+               AND photo_base64 IS NOT NULL
+             LIMIT 1`,
+            [log.args.candidate]
+          );
+          const dbImageCid = studentRef.rows[0]?.image_cid || null;
+          await db.query(
+            `INSERT INTO candidates (blockchain_id, name, position, vote_count, year, gender, image_cid, status, wallet_address)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'approved', $8)
+             ON CONFLICT (blockchain_id) WHERE blockchain_id IS NOT NULL
+             DO UPDATE SET name = $2, position = $3, vote_count = $4, wallet_address = $8,
+                           year = $5, gender = $6, image_cid = $7, status = 'approved'`,
+            [
+              id, cand.name, position, Number(cand.voteCount),
+              String(cand.year), cand.isFemale ? "female" : "male",
+              dbImageCid || cand.imageCID || null, log.args.candidate,
+            ]
+          );
           prevVotes[id] = Number(cand.voteCount);
         }
       }

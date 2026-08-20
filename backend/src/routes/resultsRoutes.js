@@ -79,7 +79,11 @@ router.get("/my-wins", async (req, res) => {
     const result = await db.query(
       `SELECT eh.election_number,
               eh.candidate_name AS name, eh.candidate_position AS position,
-              eh.vote_count, eh.candidate_photo AS photo,
+              eh.vote_count,
+              COALESCE(
+                CASE WHEN s.image_cid LIKE 'db:%' THEN s.image_cid END,
+                eh.candidate_photo
+              ) AS photo,
               eh.candidate_year AS year, eh.candidate_gender AS gender
        FROM election_history eh
        LEFT JOIN students s ON LOWER(s.wallet_address) = LOWER($1)

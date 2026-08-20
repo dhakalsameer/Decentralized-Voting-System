@@ -1,15 +1,9 @@
 import express from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs/promises";
-import crypto from "crypto";
-import { getCandidates, getPendingCandidates, applyAsCandidate, approveCandidate, rejectCandidate, getCandidateByWallet, getMyCandidateStatus } from "../controllers/candidateController.js";
-import { uploadToIPFS } from "../services/ipfsService.js";
+import { getCandidates, getPendingCandidates, applyAsCandidate, approveCandidate, rejectCandidate, getCandidateByWallet, getMyCandidateStatus, getCandidatePhoto } from "../controllers/candidateController.js";
 import { requireStudentAuth } from "../middleware/auth.js";
 import { verifyAdmin } from "../middleware/admin.js";
-import { config } from "../config/env.js";
-
-const UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
+import { db } from "../db.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -22,24 +16,6 @@ const upload = multer({
   },
 });
 
-async function persistCandidatePhoto(buffer, originalName) {
-  const ext = (path.extname(originalName) || ".png").toLowerCase();
-  const filename = `${crypto.randomBytes(16).toString("hex")}${ext}`;
-
-  if (config.pinataKey && config.pinataSecret) {
-    const cid = await uploadToIPFS(buffer, filename);
-    const url = `https://ipfs.io/ipfs/${cid}`;
-    return { cid, url };
-  }
-
-  await fs.mkdir(UPLOAD_DIR, { recursive: true });
-  await fs.writeFile(path.join(UPLOAD_DIR, filename), buffer);
-  const cid = `local:${filename}`;
-  const base = config.publicUrl || `http://localhost:${config.port || 5000}`;
-  const url = `${base}/uploads/${filename}`;
-  return { cid, url };
-}
-
 const router = express.Router();
 
 router.get("/", getCandidates);
@@ -47,6 +23,7 @@ router.get("/pending", verifyAdmin, getPendingCandidates);
 router.get("/by-wallet/:wallet", getCandidateByWallet);
 router.post("/apply", requireStudentAuth, applyAsCandidate);
 router.get("/me", requireStudentAuth, getMyCandidateStatus);
+router.get("/:ref/photo", getCandidatePhoto);
 router.post("/:id/approve", verifyAdmin, approveCandidate);
 router.post("/:id/reject", verifyAdmin, rejectCandidate);
 
@@ -56,13 +33,26 @@ router.post("/upload-photo", upload.single("photo"), async (req, res) => {
       return res.status(400).json({ error: "photo file is required" });
     }
 
-    const { cid, url } = await persistCandidatePhoto(req.file.buffer, req.file.originalname);
+    const student_id = req.user?.student_id;
+    if (!student_id) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const base64 = req.file.buffer.toString("base64");
+    const cid = `db:candidate:${student_id}`;
+
+    await db.query(
+      `UPDATE candidates SET photo_base64 = $1, image_cid = $2
+       WHERE applied_by = $3 OR LOWER(wallet_address) = LOWER($4)
+       RETURNING id`,
+      [base64, cid, student_id.toUpperCase(), req.user?.wallet_address || ""]
+    );
 
     res.json({
       success: true,
-      url,
+      url: `/api/candidates/${encodeURIComponent(student_id)}/photo`,
       cid,
-      storage: cid.startsWith("local:") ? "local" : "ipfs",
+      storage: "db",
     });
   } catch (error) {
     res.status(500).json({ error: error.message || "Upload failed" });

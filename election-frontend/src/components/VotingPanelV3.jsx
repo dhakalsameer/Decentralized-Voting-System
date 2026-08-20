@@ -211,6 +211,27 @@ export default function VotingPanelV3() {
             });
           }
         }
+
+        // Merge DB-backed photo references (db:student:... / db:candidate:...)
+        // so photos are served from the database instead of flaky IPFS gateways,
+        // even for legacy candidates whose on-chain imageCID is still a Qm CID.
+        try {
+          const dbRes = await fetch(`${API_URL}/api/candidates`);
+          if (dbRes.ok) {
+            const dbCands = await dbRes.json();
+            const byName = new Map();
+            for (const d of dbCands) {
+              if (d.image_cid) {
+                byName.set((d.name || "").toLowerCase(), d.image_cid);
+                if (d.student_id) byName.set(d.student_id.toLowerCase(), d.image_cid);
+              }
+            }
+            for (const r of rows) {
+              const ref = byName.get(r.name.toLowerCase()) || byName.get((r.studentId || "").toLowerCase());
+              if (ref) r.imageCID = ref;
+            }
+          }
+        } catch (_) { /* keep chain imageCID */ }
         if (!cancelled) setCandidates(rows);
 
         const vRes = await fetch(`${API_URL}/api/voters/pending`);

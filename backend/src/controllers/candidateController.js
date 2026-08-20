@@ -205,3 +205,27 @@ export const getMyCandidateStatus = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch status" });
   }
 };
+
+export const getCandidatePhoto = async (req, res) => {
+  try {
+    const { ref } = req.params;
+    const result = await db.query(
+      `SELECT COALESCE(photo_base64, (SELECT s.photo_base64 FROM students s WHERE s.student_id = candidates.applied_by)) AS photo_base64
+       FROM candidates
+       WHERE id::text = $1 OR applied_by = $1 OR LOWER(wallet_address) = LOWER($1)
+       LIMIT 1`,
+      [ref]
+    );
+    const base64 = result.rows[0]?.photo_base64;
+    if (!base64) {
+      return res.status(404).json({ error: "Photo not found" });
+    }
+    const buf = Buffer.from(base64, "base64");
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(buf);
+  } catch (error) {
+    console.error("getCandidatePhoto error:", error);
+    res.status(500).json({ error: "Failed to load photo" });
+  }
+};

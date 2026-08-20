@@ -128,3 +128,25 @@ export const deleteStudent = async (req, res) => {
     res.status(500).json({ error: "Delete failed" });
   }
 };
+
+export const getStudentPhoto = async (req, res) => {
+  try {
+    const { student_id } = req.params;
+    const result = await db.query(
+      "SELECT photo_base64 FROM students WHERE student_id = $1",
+      [student_id.toUpperCase()]
+    );
+    const base64 = result.rows[0]?.photo_base64;
+    if (!base64) {
+      return res.status(404).json({ error: "Photo not found" });
+    }
+
+    const buf = Buffer.from(base64, "base64");
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(buf);
+  } catch (error) {
+    console.error("getStudentPhoto error:", error);
+    res.status(500).json({ error: "Failed to load photo" });
+  }
+};
