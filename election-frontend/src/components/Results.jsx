@@ -695,11 +695,20 @@ export default function Results() {
   }, [history]);
 
   const currentElection = tabs.find((t) => t.key === selectedElection);
-  const [tabPage, setTabPage] = useState(0);
   const TABS_PER_PAGE = 4;
+  // The visible tab window is derived from selectedElection (single source of
+  // truth): the highlighted tab is always on screen, and the ◀ ▶ arrows move
+  // BOTH the selection and the window together.
+  const selectedIdx = Math.max(0, tabs.findIndex((t) => t.key === selectedElection));
   const tabPages = Math.max(1, Math.ceil((tabs.length - 1) / TABS_PER_PAGE));
+  const tabPage = Math.min(tabPages - 1, Math.max(0, Math.floor((selectedIdx - 1) / TABS_PER_PAGE)));
   const tabStart = tabPage * TABS_PER_PAGE + 1;
   const visibleTabs = [tabs[0], ...tabs.slice(tabStart, tabStart + TABS_PER_PAGE)].filter(Boolean);
+
+  const stepTabSelection = (dir) => {
+    const next = tabs[Math.min(tabs.length - 1, Math.max(0, selectedIdx + dir))];
+    if (next && next.key !== selectedElection) setSelectedElection(next.key);
+  };
 
   return (
     <div className="rounded-xl border border-app bg-app-surface">
@@ -740,14 +749,14 @@ export default function Results() {
             {tabPages > 1 && (
               <div className="flex items-center gap-0.5 ml-auto shrink-0">
                 <button
-                  onClick={() => setTabPage(p => Math.max(0, p - 1))}
-                  disabled={tabPage === 0}
+                  onClick={() => stepTabSelection(-1)}
+                  disabled={selectedIdx === 0}
                   className="text-xs px-1.5 py-1 rounded border border-app text-app-muted-text disabled:opacity-30 hover:text-app-heading transition-all cursor-pointer disabled:cursor-not-allowed"
                 >◀</button>
                 <span className="text-[10px] font-mono text-app-muted-text px-1 min-w-[3ch] text-center">{tabPage + 1}/{tabPages}</span>
                 <button
-                  onClick={() => setTabPage(p => Math.min(tabPages - 1, p + 1))}
-                  disabled={tabPage >= tabPages - 1}
+                  onClick={() => stepTabSelection(1)}
+                  disabled={selectedIdx >= tabs.length - 1}
                   className="text-xs px-1.5 py-1 rounded border border-app text-app-muted-text disabled:opacity-30 hover:text-app-heading transition-all cursor-pointer disabled:cursor-not-allowed"
                 >▶</button>
               </div>
