@@ -5,6 +5,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useToast } from "./ui/Toast";
 import { getImageUrl } from "../utils/ipfs";
+import { exportElectionResultsCsv, exportLiveResultsCsv } from "../utils/exportCsv";
 
 
 const POSITIONS = ["President", "Secretary", "General Member"];
@@ -686,6 +687,29 @@ export default function Results() {
     }
   };
 
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportCsv = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      if (selectedElection === "live") {
+        await exportLiveResultsCsv(API_URL);
+        info("Live results exported as CSV");
+      } else if (currentElection?.data) {
+        exportElectionResultsCsv(currentElection.data);
+        info(`Election ${currentElection.data.election_number} exported as CSV`);
+      } else {
+        info("No election data available to export");
+      }
+    } catch (err) {
+      console.error("CSV export failed:", err);
+      showError("Could not export results as CSV");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const tabs = useMemo(() => {
     const t = [{ key: "live", label: "Live" }];
     for (const h of history) {
@@ -712,14 +736,24 @@ export default function Results() {
             </span>
             <h2 className="text-sm sm:text-base font-semibold text-app-heading">Results</h2>
           </div>
-          <button
-            onClick={downloadPDF}
-            disabled={downloading}
-            className="hidden sm:inline-flex btn-secondary shrink-0 text-xs sm:text-sm"
-          >
-            <span aria-hidden="true">{downloading ? "⏳" : "📥"}</span>
-            {downloading ? "Generating PDF..." : "Download Audit Report"}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleExportCsv}
+              disabled={exporting}
+              className="hidden sm:inline-flex btn-secondary text-xs sm:text-sm"
+            >
+              <span aria-hidden="true">{exporting ? "⏳" : "📊"}</span>
+              {exporting ? "Exporting..." : "Export CSV"}
+            </button>
+            <button
+              onClick={downloadPDF}
+              disabled={downloading}
+              className="hidden sm:inline-flex btn-secondary shrink-0 text-xs sm:text-sm"
+            >
+              <span aria-hidden="true">{downloading ? "⏳" : "📥"}</span>
+              {downloading ? "Generating PDF..." : "Download Audit Report"}
+            </button>
+          </div>
         </div>
 
         {tabs.length > 1 && (
