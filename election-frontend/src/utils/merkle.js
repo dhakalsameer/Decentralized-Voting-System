@@ -108,22 +108,29 @@ export async function fetchVerifiedSnapshot(contract, apiUrl) {
   }
   if (!snap || !Array.isArray(snap.wallets) || !Array.isArray(snap.identities)) return null;
 
-  // Prefer the IPFS copy when one was pinned (decentralized availability).
-  // The root comparison below is what actually establishes trust.
+  // Prefer an IPFS gateway copy when one was pinned (decentralized
+  // availability), fastest first. The root comparison below is what
+  // actually establishes trust.
   if (snap.ipfsCid) {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 4000);
-      const res = await fetch(`https://ipfs.io/ipfs/${snap.ipfsCid}`, { signal: ctrl.signal });
-      clearTimeout(timer);
-      if (res.ok) {
+    const gateways = [
+      `https://gateway.pinata.cloud/ipfs/${snap.ipfsCid}`,
+      `https://ipfs.io/ipfs/${snap.ipfsCid}`,
+    ];
+    for (const url of gateways) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 4000);
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (!res.ok) continue;
         const ipfsSnap = await res.json();
         if (Array.isArray(ipfsSnap.wallets) && Array.isArray(ipfsSnap.identities)) {
           snap = { ...snap, wallets: ipfsSnap.wallets, identities: ipfsSnap.identities };
+          break;
         }
+      } catch {
+        /* gateway slow/unavailable — try next, backend copy is already loaded */
       }
-    } catch {
-      /* gateway slow/unavailable — backend copy already loaded and will be verified */
     }
   }
 
