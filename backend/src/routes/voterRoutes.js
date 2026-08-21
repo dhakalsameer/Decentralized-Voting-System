@@ -1,5 +1,5 @@
 import express from "express";
-import { bulkVerifyVoters, getMe, getPendingVoters, revokeVoter, bulkRevokeVoters, getProof, getIdentityProof, adminRebuildMerkle, checkMerkleSyncStatus } from "../controllers/voterController.js";
+import { bulkVerifyVoters, getMe, getPendingVoters, revokeVoter, bulkRevokeVoters, getProof, getIdentityProof, adminRebuildMerkle, checkMerkleSyncStatus, getVoterSnapshot } from "../controllers/voterController.js";
 import { verifyAdmin } from "../middleware/admin.js";
 import { db } from "../db.js";
 
@@ -9,6 +9,7 @@ router.get("/me", getMe);
 router.get("/pending", getPendingVoters);
 router.get("/proof", getProof);
 router.get("/identity-proof", getIdentityProof);
+router.get("/snapshot", getVoterSnapshot);
 router.post("/verify-bulk", verifyAdmin, bulkVerifyVoters);
 router.post("/revoke", verifyAdmin, revokeVoter);
 router.post("/revoke-bulk", verifyAdmin, bulkRevokeVoters);

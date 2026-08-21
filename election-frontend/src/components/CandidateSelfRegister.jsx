@@ -6,6 +6,7 @@ import { API_URL } from "../config";
 import { useToast } from "./ui/Toast";
 import BlockExplorerLink from "./ui/BlockExplorerLink";
 import { formatContractError } from "../utils/errors";
+import { getIdentityProof, fetchVerifiedSnapshot } from "../utils/merkle";
 import { getImageUrl } from "../utils/ipfs";
 
 const POSITIONS = [
@@ -78,6 +79,26 @@ export default function CandidateSelfRegister({ student, regEnd }) {
     if (!wallet) return;
     setLoadingProof(true);
     try {
+      // Trust-minimized proof: verify the published whitelist snapshot
+      // against the on-chain identity root via the voter's own provider and
+      // generate the proof locally. Falls back to the backend endpoint.
+      try {
+        const contract = await getContractV3();
+        const snap = await fetchVerifiedSnapshot(contract, API_URL);
+        if (snap) {
+          const target = snap.identities.find(
+            (i) => i.address && i.address.toLowerCase() === wallet.toLowerCase()
+          );
+          if (target) {
+            setProof(getIdentityProof(snap.identities, target));
+            setIdentity({ name: target.name, year: target.year, isFemale: target.isFemale });
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Snapshot verification unavailable, using backend proof:", err?.message);
+      }
+
       const res = await fetch(`${API_URL}/api/voters/identity-proof?wallet=${wallet}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to get identity proof");

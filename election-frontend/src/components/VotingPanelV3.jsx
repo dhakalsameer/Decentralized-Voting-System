@@ -2,7 +2,7 @@ import { useEffect, useState, useContext, useMemo } from "react";
 import { AuthContext } from "../context/AuthContextValue";
 import { getContractV3 } from "../contract";
 import { API_URL, SEPOLIA_CHAIN_HEX, SEPOLIA_CHAIN_ID, SEPOLIA_NETWORK } from "../config";
-import { getProof } from "../utils/merkle";
+import { getProof, fetchVerifiedSnapshot } from "../utils/merkle";
 import { useBalance } from "../hooks/useBalance";
 import { useToast } from "./ui/Toast";
 import { formatContractError } from "../utils/errors";
@@ -311,18 +311,24 @@ export default function VotingPanelV3() {
     setShowConfirm(false);
     setCasting(true);
     try {
-      let proof;
-      try {
+      const contract = await getContractV3();
+
+      // Trust-minimized proof: verify the published whitelist snapshot
+      // against the on-chain root via the voter's own provider and generate
+      // the proof locally. Falls back to the backend proof endpoint.
+      let proof = null;
+      const snap = await fetchVerifiedSnapshot(contract, API_URL).catch(() => null);
+      if (snap) {
+        proof = getProof(snap.wallets, wallet);
+      }
+      if (!proof?.length) {
         const res = await fetch(`${API_URL}/api/voters/proof?wallet=${wallet}`);
         const data = await res.json();
         proof = data.proof;
-      } catch {
-        proof = getProof(eligibleWallets, wallet);
       }
 
       if (!proof?.length) throw new Error("Not eligible to vote");
 
-      const contract = await getContractV3();
       const tx = await contract.castVote(
         selectedPresidentId || 0,
         selectedSecretaryId || 0,

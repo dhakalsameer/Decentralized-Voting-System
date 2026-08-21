@@ -8,6 +8,7 @@ import {
 } from "../services/merkleService.js";
 import { emitEvent } from "../socket.js";
 import { sendVoterVerifiedEmail } from "../services/emailService.js";
+import { pinJSON } from "../services/ipfsService.js";
 
 function parseYear(year) {
   if (year == null) return 0;
@@ -43,23 +44,48 @@ function toIdentities(rows) {
  */
 export async function getMerkleSnapshot() {
   const { rows } = await db.query(
-    `SELECT wallets, identities FROM merkle_snapshots WHERE id = $1`,
+    `SELECT wallets, identities, snapshot_cid FROM merkle_snapshots WHERE id = $1`,
     [SNAPSHOT_ID]
   );
   if (rows.length === 0) return null;
   return {
     wallets: Array.isArray(rows[0].wallets) ? rows[0].wallets : [],
     identities: Array.isArray(rows[0].identities) ? rows[0].identities : [],
+    snapshotCid: rows[0].snapshot_cid || null,
   };
 }
 
-async function saveMerkleSnapshot(wallets, identities) {
+async function saveMerkleSnapshot(wallets, identities, snapshotCid = null) {
   await db.query(
-    `INSERT INTO merkle_snapshots (id, wallets, identities, updated_at)
-     VALUES ($1, $2::jsonb, $3::jsonb, NOW())
-     ON CONFLICT (id) DO UPDATE SET wallets = $2::jsonb, identities = $3::jsonb, updated_at = NOW()`,
-    [SNAPSHOT_ID, JSON.stringify(wallets), JSON.stringify(identities)]
+    `INSERT INTO merkle_snapshots (id, wallets, identities, snapshot_cid, updated_at)
+     VALUES ($1, $2::jsonb, $3::jsonb, $4, NOW())
+     ON CONFLICT (id) DO UPDATE
+       SET wallets = $2::jsonb, identities = $3::jsonb, snapshot_cid = $4, updated_at = NOW()`,
+    [SNAPSHOT_ID, JSON.stringify(wallets), JSON.stringify(identities), snapshotCid]
   );
+}
+
+/**
+ * Publishes the whitelist dataset to IPFS (best-effort) and records the CID.
+ * The dataset lets voters verify the on-chain root and generate proofs
+ * client-side without trusting this backend. No-op when Pinata is not
+ * configured — the /api/voters/snapshot endpoint always serves the dataset.
+ */
+async function publishSnapshotToIpfs(wallets, identities) {
+  try {
+    const cid = await pinJSON(
+      { wallets, identities, publishedAt: new Date().toISOString() },
+      "voter-merkle-snapshot.json"
+    );
+    if (cid) {
+      await db.query(`UPDATE merkle_snapshots SET snapshot_cid = $1 WHERE id = $2`, [cid, SNAPSHOT_ID]);
+      console.log("Merkle snapshot pinned to IPFS:", cid);
+    }
+    return cid;
+  } catch (err) {
+    console.error("Snapshot IPFS publish failed:", err.message);
+    return null;
+  }
 }
 
 export async function rebuildMerkleTrees() {
@@ -102,8 +128,9 @@ export async function rebuildMerkleTrees() {
     const receipt = await tx2.wait();
 
     // Atomically freeze the exact data that was published so future proofs
-    // always verify against this root.
+    // always verify against this root, and mirror it to IPFS when configured.
     await saveMerkleSnapshot(wallets, identities);
+    await publishSnapshotToIpfs(wallets, identities);
     emitEvent("dataChanged", { type: "voters" });
     return receipt.hash;
   }
@@ -119,6 +146,7 @@ export async function rebuildMerkleTrees() {
       await saveMerkleSnapshot(wallets, identities).catch(err =>
         console.error("Failed to seed Merkle snapshot:", err.message)
       );
+      await publishSnapshotToIpfs(wallets, identities).catch(() => {});
     }
   }
   // When locked and diverged, deliberately keep the existing snapshot:
@@ -434,6 +462,32 @@ export const adminRebuildMerkle = async (_req, res) => {
   } catch (error) {
     console.error("adminRebuildMerkle error:", error);
     return res.status(500).json({ error: error.reason || error.message || "Rebuild failed" });
+  }
+};
+
+/**
+ * Public whitelist dataset behind the published Merkle roots. Clients
+ * recompute the roots from this data and compare them against the on-chain
+ * roots (read via their own wallet provider) before generating proofs
+ * locally — removing any need to trust this backend.
+ */
+export const getVoterSnapshot = async (_req, res) => {
+  try {
+    const snap = await getMerkleSnapshot();
+    if (!snap || snap.wallets.length === 0) {
+      return res.status(404).json({ error: "No Merkle snapshot published yet" });
+    }
+    return res.json({
+      wallets: snap.wallets,
+      identities: snap.identities,
+      voterRoot: generateMerkleRoot(snap.wallets),
+      identityRoot: generateIdentityMerkleRoot(snap.identities),
+      ipfsCid: snap.snapshotCid,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("getVoterSnapshot error:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 

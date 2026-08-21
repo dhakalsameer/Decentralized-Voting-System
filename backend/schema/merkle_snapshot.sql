@@ -12,8 +12,11 @@
 --   * Re-syncing the whitelist is an explicit admin action that atomically
 --     publishes new roots and refreshes this snapshot.
 CREATE TABLE IF NOT EXISTS merkle_snapshots (
-  id         BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (id),
-  wallets    JSONB       NOT NULL DEFAULT '[]'::jsonb,
-  identities JSONB       NOT NULL DEFAULT '[]'::jsonb,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id           BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (id),
+  wallets      JSONB       NOT NULL DEFAULT '[]'::jsonb,
+  identities   JSONB       NOT NULL DEFAULT '[]'::jsonb,
+  snapshot_cid TEXT,
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE merkle_snapshots ADD COLUMN IF NOT EXISTS snapshot_cid TEXT;
