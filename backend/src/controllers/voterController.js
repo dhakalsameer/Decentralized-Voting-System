@@ -15,41 +15,117 @@ function parseYear(year) {
   return Number.isFinite(n) ? n : 0;
 }
 
-export async function rebuildMerkleTrees() {
-  const allEligibleResult = await db.query(
+const SNAPSHOT_ID = true;
+
+async function loadEligibleRows() {
+  const { rows } = await db.query(
     `SELECT wallet_address, name, year, gender FROM students WHERE eligible_to_vote = true AND wallet_address IS NOT NULL`
   );
-  const allWallets = allEligibleResult.rows.map(r => r.wallet_address);
-  const root = generateMerkleRoot(allWallets);
+  return rows;
+}
 
-  const identities = allEligibleResult.rows.map(r => ({
+function toWallets(rows) {
+  return rows.map(r => r.wallet_address);
+}
+
+function toIdentities(rows) {
+  return rows.map(r => ({
     address: r.wallet_address,
     name: r.name,
     year: parseYear(r.year),
     isFemale: r.gender?.toLowerCase() === "female",
   }));
+}
+
+/**
+ * Returns the frozen voter data behind the last published Merkle roots,
+ * or null when no snapshot exists yet (fresh deployment).
+ */
+export async function getMerkleSnapshot() {
+  const { rows } = await db.query(
+    `SELECT wallets, identities FROM merkle_snapshots WHERE id = $1`,
+    [SNAPSHOT_ID]
+  );
+  if (rows.length === 0) return null;
+  return {
+    wallets: Array.isArray(rows[0].wallets) ? rows[0].wallets : [],
+    identities: Array.isArray(rows[0].identities) ? rows[0].identities : [],
+  };
+}
+
+async function saveMerkleSnapshot(wallets, identities) {
+  await db.query(
+    `INSERT INTO merkle_snapshots (id, wallets, identities, updated_at)
+     VALUES ($1, $2::jsonb, $3::jsonb, NOW())
+     ON CONFLICT (id) DO UPDATE SET wallets = $2::jsonb, identities = $3::jsonb, updated_at = NOW()`,
+    [SNAPSHOT_ID, JSON.stringify(wallets), JSON.stringify(identities)]
+  );
+}
+
+export async function rebuildMerkleTrees() {
+  const rows = await loadEligibleRows();
+  const wallets = toWallets(rows);
+  const identities = toIdentities(rows);
+  const root = generateMerkleRoot(wallets);
   const identityRoot = generateIdentityMerkleRoot(identities);
+
+  let chainVoterRoot = null;
+  let chainIdentityRoot = null;
+  try {
+    [chainVoterRoot, chainIdentityRoot] = await Promise.all([
+      electionContractV3.voterMerkleRoot(),
+      electionContractV3.identityMerkleRoot(),
+    ]);
+  } catch (err) {
+    console.error("Failed to read on-chain Merkle roots:", err.message);
+  }
+
+  // No-op detection: only publish when the recomputed roots actually differ
+  // from what the contract holds. Unrelated edits (photos, profile fixes)
+  // therefore never touch the chain and never invalidate outstanding proofs.
+  const unchanged =
+    chainVoterRoot !== null &&
+    chainIdentityRoot !== null &&
+    chainVoterRoot === root &&
+    chainIdentityRoot === identityRoot;
 
   const phase = Number(await electionContractV3.getPhase());
   const rootsLocked = phase >= 2;
 
-  if (rootsLocked) {
-    console.log("Merkle roots locked — skipping on-chain update (phase >= 2)");
+  if (!unchanged && !rootsLocked && chainVoterRoot !== null) {
+    console.log("Updating Voter Merkle Root to:", root);
+    const tx1 = await electionContractV3.setMerkleRoot(root);
+    await tx1.wait();
+
+    console.log("Updating Identity Merkle Root to:", identityRoot);
+    const tx2 = await electionContractV3.setIdentityMerkleRoot(identityRoot);
+    const receipt = await tx2.wait();
+
+    // Atomically freeze the exact data that was published so future proofs
+    // always verify against this root.
+    await saveMerkleSnapshot(wallets, identities);
     emitEvent("dataChanged", { type: "voters" });
-    return null;
+    return receipt.hash;
   }
 
-  console.log("Updating Voter Merkle Root to:", root);
-  const tx1 = await electionContractV3.setMerkleRoot(root);
-  await tx1.wait();
+  if (unchanged) console.log("Merkle roots unchanged — skipping on-chain update");
+  if (rootsLocked) console.log("Merkle roots locked — skipping on-chain update (phase >= 2)");
 
-  console.log("Updating Identity Merkle Root to:", identityRoot);
-  const tx2 = await electionContractV3.setIdentityMerkleRoot(identityRoot);
-  const receipt = await tx2.wait();
+  if (unchanged) {
+    // Live data matches the chain; make sure the snapshot reflects it so
+    // proofs are served from stable data going forward.
+    const snap = await getMerkleSnapshot().catch(() => null);
+    if (!snap) {
+      await saveMerkleSnapshot(wallets, identities).catch(err =>
+        console.error("Failed to seed Merkle snapshot:", err.message)
+      );
+    }
+  }
+  // When locked and diverged, deliberately keep the existing snapshot:
+  // proofs must continue to match the root that is actually on-chain.
 
   emitEvent("dataChanged", { type: "voters" });
-
-  return receipt.hash;
+  return null;
 }
 
 export const getMe = async (req, res) => {
@@ -114,14 +190,23 @@ export const getProof = async (req, res) => {
       return res.status(400).json({ error: "wallet query parameter is required" });
     }
 
-    const result = await db.query(
-      `SELECT wallet_address
-       FROM students
-       WHERE eligible_to_vote = true
-         AND wallet_address IS NOT NULL`
-    );
+    // Generate from the published snapshot so proofs always verify against
+    // the on-chain root, even if the live students table has drifted
+    // (edits made while roots are locked, imports, profile fixes).
+    let wallets = null;
+    const snap = await getMerkleSnapshot().catch(() => null);
+    if (snap && snap.wallets.length > 0) {
+      wallets = snap.wallets;
+    } else {
+      const result = await db.query(
+        `SELECT wallet_address
+         FROM students
+         WHERE eligible_to_vote = true
+           AND wallet_address IS NOT NULL`
+      );
+      wallets = result.rows.map(r => r.wallet_address);
+    }
 
-    const wallets = result.rows.map(r => r.wallet_address);
     const proof = generateMerkleProof(wallets, wallet);
 
     return res.json({ proof });
@@ -286,48 +371,38 @@ export const getIdentityProof = async (req, res) => {
       return res.status(400).json({ error: "wallet query parameter is required" });
     }
 
-    const studentResult = await db.query(
-      `SELECT wallet_address, name, year, gender
-       FROM students
-       WHERE LOWER(wallet_address) = LOWER($1)
-         AND eligible_to_vote = true`,
-      [wallet]
-    );
-
-    if (studentResult.rows.length === 0) {
-      return res.status(403).json({ error: "Student not found or not eligible" });
+    // Prefer the published snapshot: the target identity MUST come from the
+    // same dataset the tree was built from, otherwise a renamed/edited
+    // student would receive a proof for a leaf that is not in the tree.
+    let identities = null;
+    const snap = await getMerkleSnapshot().catch(() => null);
+    if (snap && snap.identities.length > 0) {
+      identities = snap.identities;
+    } else {
+      const allResult = await db.query(
+        `SELECT wallet_address, name, year, gender
+         FROM students
+         WHERE eligible_to_vote = true
+           AND wallet_address IS NOT NULL`
+      );
+      identities = toIdentities(allResult.rows);
     }
 
-    const student = studentResult.rows[0];
-
-    const allResult = await db.query(
-      `SELECT wallet_address, name, year, gender
-       FROM students
-       WHERE eligible_to_vote = true
-         AND wallet_address IS NOT NULL`
+    const targetIdentity = identities.find(
+      i => i.address && i.address.toLowerCase() === wallet.toLowerCase()
     );
 
-    const identities = allResult.rows.map(r => ({
-      address: r.wallet_address,
-      name: r.name,
-      year: parseYear(r.year),
-      isFemale: r.gender?.toLowerCase() === "female",
-    }));
-
-    const targetIdentity = {
-      address: student.wallet_address,
-      name: student.name,
-      year: parseYear(student.year),
-      isFemale: student.gender?.toLowerCase() === "female",
-    };
+    if (!targetIdentity) {
+      return res.status(403).json({ error: "Student not found or not eligible" });
+    }
 
     const proof = generateIdentityMerkleProof(identities, targetIdentity);
 
     return res.json({
       proof,
       identity: {
-        name: student.name,
-        year: parseYear(student.year),
+        name: targetIdentity.name,
+        year: targetIdentity.year,
         isFemale: targetIdentity.isFemale,
       },
     });
@@ -341,12 +416,21 @@ export const adminRebuildMerkle = async (_req, res) => {
   try {
     const txHash = await rebuildMerkleTrees();
     if (!txHash) {
-      return res.status(400).json({
-        success: false,
-        error: "Merkle roots are locked on-chain (phase >= 2). On-chain update skipped.",
+      const phase = Number(await electionContractV3.getPhase());
+      if (phase >= 2) {
+        return res.status(400).json({
+          success: false,
+          error: "Merkle roots are locked on-chain (phase >= 2). On-chain update skipped.",
+        });
+      }
+      return res.json({
+        success: true,
+        changed: false,
+        txHash: null,
+        message: "Whitelist already in sync with the blockchain — no transaction needed.",
       });
     }
-    return res.json({ success: true, txHash });
+    return res.json({ success: true, changed: true, txHash });
   } catch (error) {
     console.error("adminRebuildMerkle error:", error);
     return res.status(500).json({ error: error.reason || error.message || "Rebuild failed" });
