@@ -329,6 +329,13 @@ export const revokeVoter = async (req, res) => {
       return res.status(404).json({ error: "Student with linked wallet not found" });
     }
 
+    const phase = Number(await electionContractV3.getPhase());
+    if (phase >= 2) {
+      return res.status(400).json({
+        error: "Cannot revoke voters during Voting or later. Merkle roots are locked on-chain; the revocation would not take effect until the next election.",
+      });
+    }
+
     const student = result.rows[0];
     const previousEligible = student.eligible_to_vote;
 
@@ -365,6 +372,13 @@ export const bulkRevokeVoters = async (req, res) => {
 
     if (!Array.isArray(student_ids) || student_ids.length === 0) {
       return res.status(400).json({ error: "student_ids array is required" });
+    }
+
+    const phase = Number(await electionContractV3.getPhase());
+    if (phase >= 2) {
+      return res.status(400).json({
+        error: "Cannot revoke voters during Voting or later. Merkle roots are locked on-chain; the revocation would not take effect until the next election.",
+      });
     }
 
     const result = await db.query(

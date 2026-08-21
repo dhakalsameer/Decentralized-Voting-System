@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { db } from "../db.js";
 import { rebuildMerkleTrees } from "./voterController.js";
 import { rebuildRegCodeMerkleRoot } from "./registrationCodeController.js";
+import { electionContractV3 } from "../blockchain/electionContract.js";
 
 const VALID_YEARS = ["1st", "2nd", "3rd", "4th"];
 const VALID_GENDERS = ["male", "female", "other"];
@@ -87,6 +88,15 @@ export const deleteStudent = async (req, res) => {
       [student_id]
     );
     const wasEligible = checkResult.rows.length > 0 && checkResult.rows[0].eligible_to_vote;
+
+    if (wasEligible) {
+      const phase = Number(await electionContractV3.getPhase());
+      if (phase >= 2) {
+        return res.status(400).json({
+          error: "Cannot delete a whitelisted voter during Voting or later. Merkle roots are locked on-chain; revoke them before starting the vote or after the election ends.",
+        });
+      }
+    }
 
     client = await db.connect();
     await client.query("BEGIN");
