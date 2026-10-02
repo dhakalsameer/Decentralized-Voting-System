@@ -6,6 +6,15 @@ function keccak256(input) {
   return Buffer.from(ethers.keccak256(input).slice(2), "hex");
 }
 
+// A slow IPFS mirror must never stall the voter: each attempt is capped and
+// the whole gateway phase shares one budget, so we fall through to the next
+// gateway (and finally the backend copy) quickly instead of hanging.
+// Only gateways that serve CORS headers on their final response are listed —
+// w3s.link is deliberately absent because it 301s to dweb.link without
+// access-control-allow-origin, which fails the browser fetch outright.
+const GATEWAY_TIMEOUT_MS = 4000;
+const GATEWAY_BUDGET_MS = 8000;
+
 /**
  * Generates a Merkle Proof for a wallet given a list of all eligible wallets.
  * @param {string[]} allWallets 
@@ -114,14 +123,17 @@ export async function fetchVerifiedSnapshot(contract, apiUrl) {
   if (snap.ipfsCid) {
     const gateways = [
       `https://gateway.pinata.cloud/ipfs/${snap.ipfsCid}`,
+      `https://dweb.link/ipfs/${snap.ipfsCid}`,
       `https://ipfs.io/ipfs/${snap.ipfsCid}`,
     ];
+    const deadline = Date.now() + GATEWAY_BUDGET_MS;
     for (const url of gateways) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), Math.min(remaining, GATEWAY_TIMEOUT_MS));
       try {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 4000);
         const res = await fetch(url, { signal: ctrl.signal });
-        clearTimeout(timer);
         if (!res.ok) continue;
         const ipfsSnap = await res.json();
         if (Array.isArray(ipfsSnap.wallets) && Array.isArray(ipfsSnap.identities)) {
@@ -130,6 +142,8 @@ export async function fetchVerifiedSnapshot(contract, apiUrl) {
         }
       } catch {
         /* gateway slow/unavailable — try next, backend copy is already loaded */
+      } finally {
+        clearTimeout(timer);
       }
     }
   }
