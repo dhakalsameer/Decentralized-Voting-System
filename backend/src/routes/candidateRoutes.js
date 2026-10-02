@@ -3,6 +3,8 @@ import multer from "multer";
 import { getCandidates, getPendingCandidates, applyAsCandidate, approveCandidate, rejectCandidate, getCandidateByWallet, getMyCandidateStatus, getCandidatePhoto } from "../controllers/candidateController.js";
 import { requireStudentAuth } from "../middleware/auth.js";
 import { verifyAdmin } from "../middleware/admin.js";
+import { isCandidatePhotoLocked } from "../utils/phasePolicy.js";
+import { electionContractV3 } from "../blockchain/electionContract.js";
 import { db } from "../db.js";
 
 const upload = multer({
@@ -31,6 +33,19 @@ router.post("/upload-photo", requireStudentAuth, upload.single("photo"), async (
   try {
     if (!req.file) {
       return res.status(400).json({ error: "photo file is required" });
+    }
+
+    // Freeze candidate media once voting opens. Fails open so a transient RPC
+    // problem cannot block a student from correcting their photo; the on-chain
+    // phase is the source of truth, not this cache.
+    try {
+      if (isCandidatePhotoLocked(await electionContractV3.getPhase())) {
+        return res.status(403).json({
+          error: "Candidate photos are locked once voting has started",
+        });
+      }
+    } catch (err) {
+      console.warn("Phase read failed, allowing candidate photo upload:", err.message);
     }
 
     const student_id = req.user?.student_id;
