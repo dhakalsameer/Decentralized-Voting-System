@@ -27,7 +27,7 @@ router.get("/:ref/photo", getCandidatePhoto);
 router.post("/:id/approve", verifyAdmin, approveCandidate);
 router.post("/:id/reject", verifyAdmin, rejectCandidate);
 
-router.post("/upload-photo", upload.single("photo"), async (req, res) => {
+router.post("/upload-photo", requireStudentAuth, upload.single("photo"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "photo file is required" });
@@ -38,20 +38,46 @@ router.post("/upload-photo", upload.single("photo"), async (req, res) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
+    // Resolve the wallet server-side. Never trust a client-supplied address,
+    // otherwise one student could overwrite another candidate's photo.
+    const student = await db.query(
+      `SELECT wallet_address, wallet_verified FROM students WHERE student_id = $1`,
+      [student_id]
+    );
+    const wallet = student.rows[0]?.wallet_address;
+    if (!wallet) {
+      return res.status(400).json({
+        error: "Link a wallet to your student account before uploading a photo",
+      });
+    }
+    if (!student.rows[0].wallet_verified) {
+      return res.status(403).json({ error: "Wallet is not verified yet" });
+    }
+
     const base64 = req.file.buffer.toString("base64");
-    const cid = `db:candidate:${student_id}`;
+
+    // The students row always exists, so the photo is retained even when the
+    // candidate has not registered on-chain yet.
+    await db.query(
+      `UPDATE students SET photo_base64 = $1, updated_at = NOW() WHERE student_id = $2`,
+      [base64, student_id]
+    );
+
+    // Wallet-keyed reference: getCandidatePhoto matches it on
+    // LOWER(wallet_address), so retrieval resolves once sync creates the row.
+    const cid = `db:candidate:${wallet}`;
 
     await db.query(
       `UPDATE candidates SET photo_base64 = $1, image_cid = $2
-       WHERE applied_by = $3 OR LOWER(wallet_address) = LOWER($4)
-       RETURNING id`,
-      [base64, cid, student_id.toUpperCase(), req.user?.wallet_address || ""]
+       WHERE LOWER(wallet_address) = LOWER($3)`,
+      [base64, cid, wallet]
     );
 
     res.json({
       success: true,
-      url: `/api/candidates/${encodeURIComponent(student_id)}/photo`,
+      url: `/api/candidates/${encodeURIComponent(wallet)}/photo`,
       cid,
+      image_cid: cid,
       storage: "db",
     });
   } catch (error) {

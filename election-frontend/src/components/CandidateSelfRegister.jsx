@@ -133,6 +133,13 @@ export default function CandidateSelfRegister({ student, regEnd }) {
       return showError("Image must be under 5 MB");
     }
 
+    // This endpoint authenticates with the portal JWT (the app has no
+    // wallet-signature token), so portal sign-in is required.
+    const token = localStorage.getItem("portal_token");
+    if (!token) {
+      return showError("Sign in to the Student Portal before uploading a photo");
+    }
+
     setUploadingPhoto(true);
     try {
       const formData = new FormData();
@@ -140,12 +147,13 @@ export default function CandidateSelfRegister({ student, regEnd }) {
 
       const res = await fetch(`${API_URL}/api/candidates/upload-photo`, {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
-      setImageCID(data.cid);
+      setImageCID(data.cid || data.image_cid || "");
       setPhotoPreview(URL.createObjectURL(file));
     } catch (err) {
       showError(err.message || "Photo upload failed");

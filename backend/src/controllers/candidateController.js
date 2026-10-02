@@ -210,7 +210,13 @@ export const getCandidatePhoto = async (req, res) => {
   try {
     const { ref } = req.params;
     const result = await db.query(
-      `SELECT COALESCE(photo_base64, (SELECT s.photo_base64 FROM students s WHERE s.student_id = candidates.applied_by)) AS photo_base64
+      `SELECT COALESCE(
+                photo_base64,
+                (SELECT s.photo_base64 FROM students s
+                  WHERE LOWER(s.wallet_address) = LOWER(candidates.wallet_address)),
+                (SELECT s2.photo_base64 FROM students s2
+                  WHERE s2.student_id = candidates.applied_by)
+              ) AS photo_base64
        FROM candidates
        WHERE id::text = $1 OR applied_by = $1 OR LOWER(wallet_address) = LOWER($1)
        LIMIT 1`,
