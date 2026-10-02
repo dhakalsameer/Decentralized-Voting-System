@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { db } from "../db.js";
 import { rebuildMerkleTrees } from "./voterController.js";
 import { rebuildRegCodeMerkleRoot } from "./registrationCodeController.js";
+import { sendPhoto } from "../utils/photoResponse.js";
 import { electionContractV3 } from "../blockchain/electionContract.js";
 
 const VALID_YEARS = ["1st", "2nd", "3rd", "4th"];
@@ -143,27 +144,14 @@ export const getStudentPhoto = async (req, res) => {
   try {
     const { student_id } = req.params;
     const result = await db.query(
-      "SELECT photo_base64, updated_at FROM students WHERE student_id = $1",
+      "SELECT photo_base64 FROM students WHERE student_id = $1",
       [student_id.toUpperCase()]
     );
     const base64 = result.rows[0]?.photo_base64;
     if (!base64) {
       return res.status(404).json({ error: "Photo not found" });
     }
-
-    // The URL is stable per student (/api/students/<id>/photo), so the browser
-    // cached the previous image for 24h and kept showing it after an upload.
-    // Revalidate on every load via ETag, but still get a free 304 when unchanged.
-    const etag = `W/"${student_id.toUpperCase()}-${new Date(result.rows[0].updated_at).getTime()}"`;
-    res.setHeader("ETag", etag);
-    res.setHeader("Cache-Control", "no-cache");
-    if (req.headers["if-none-match"] === etag) {
-      return res.status(304).end();
-    }
-
-    const buf = Buffer.from(base64, "base64");
-    res.setHeader("Content-Type", "image/jpeg");
-    res.send(buf);
+    sendPhoto(req, res, base64);
   } catch (error) {
     console.error("getStudentPhoto error:", error);
     res.status(500).json({ error: "Failed to load photo" });
