@@ -649,12 +649,27 @@ function ProfileCard({ student, onPhotoChange }) {
   const [uploading, setUploading] = useState(false);
   const { authFetch } = usePortal();
   const { checkVoterStatus } = useContext(AuthContext);
+  const { error: showError } = useToast();
   const imageUrl = getImageUrl(student.image_cid);
   const initials = (student.name || "?").split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // The upload API accepts PNG/JPEG/WEBP/GIF only. Checking here avoids a
+    // round trip that used to fail with an opaque "Something went wrong!".
+    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) {
+      showError("Only PNG, JPEG, WEBP or GIF images are supported");
+      if (e.target) e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showError("Image must be under 5 MB");
+      if (e.target) e.target.value = "";
+      return;
+    }
+
     setUploading(true);
     try {
       const form = new FormData();
@@ -664,11 +679,14 @@ function ProfileCard({ student, onPhotoChange }) {
         body: form,
       });
       if (data.student) onPhotoChange(data.student);
+      else showError("Photo upload failed");
       if (student.wallet_address) checkVoterStatus(student.wallet_address);
     } catch (err) {
       console.error("Photo upload failed:", err);
+      showError(err.message || "Photo upload failed");
     } finally {
       setUploading(false);
+      if (e.target) e.target.value = "";
     }
   };
 
@@ -691,7 +709,7 @@ function ProfileCard({ student, onPhotoChange }) {
         >
           {uploading ? "…" : "+"}
         </button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={handleUpload} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">

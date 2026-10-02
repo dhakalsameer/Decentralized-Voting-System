@@ -13,7 +13,17 @@ const upload = multer({
   },
 });
 
-export const uploadMiddleware = upload.single("photo");
+export const uploadMiddleware = (req, res, next) =>
+  upload.single("photo")(req, res, (err) => {
+    if (!err) return next();
+    // Surface the real reason with a 4xx. Left unhandled these reach the
+    // global handler at server.js:129 and surface as "Something went wrong!",
+    // which told the user nothing about why their upload failed.
+    const tooBig = err.code === "LIMIT_FILE_SIZE";
+    return res.status(tooBig ? 413 : 400).json({
+      error: tooBig ? "Image must be under 5 MB" : err.message || "Invalid image file",
+    });
+  });
 
 /**
  * Store a photo permanently in the database as base64. Returns a

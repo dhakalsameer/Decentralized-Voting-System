@@ -1,22 +1,11 @@
 import express from "express";
-import multer from "multer";
 import { getCandidates, getPendingCandidates, applyAsCandidate, approveCandidate, rejectCandidate, getCandidateByWallet, getMyCandidateStatus, getCandidatePhoto } from "../controllers/candidateController.js";
+import { uploadMiddleware } from "../controllers/uploadController.js";
 import { requireStudentAuth } from "../middleware/auth.js";
 import { verifyAdmin } from "../middleware/admin.js";
 import { isCandidatePhotoLocked } from "../utils/phasePolicy.js";
 import { electionContractV3 } from "../blockchain/electionContract.js";
 import { db } from "../db.js";
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.mimetype)) {
-      return cb(new Error("Only PNG/JPEG/WEBP/GIF images are allowed"));
-    }
-    cb(null, true);
-  },
-});
 
 const router = express.Router();
 
@@ -29,7 +18,7 @@ router.get("/:ref/photo", getCandidatePhoto);
 router.post("/:id/approve", verifyAdmin, approveCandidate);
 router.post("/:id/reject", verifyAdmin, rejectCandidate);
 
-router.post("/upload-photo", requireStudentAuth, upload.single("photo"), async (req, res) => {
+router.post("/upload-photo", requireStudentAuth, uploadMiddleware, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "photo file is required" });
