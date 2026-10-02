@@ -43,12 +43,16 @@ export async function uploadPhoto(req, res) {
 
     const { student_id } = req.user;
     const base64 = req.file.buffer.toString("base64");
+    const cid = `db:student:${student_id}`;
 
+    // image_cid must be persisted, not just echoed back in the response.
+    // /api/auth/me reads it from the database, so leaving it unset made the
+    // new photo disappear on the next reload.
     const result = await db.query(
-      `UPDATE students SET photo_base64 = $1, updated_at = NOW()
-       WHERE student_id = $2
-       RETURNING student_id, name, year, gender, wallet_address, wallet_verified, eligible_to_vote`,
-      [base64, student_id]
+      `UPDATE students SET photo_base64 = $1, image_cid = $2, updated_at = NOW()
+       WHERE student_id = $3
+       RETURNING student_id, name, year, gender, image_cid, wallet_address, wallet_verified, eligible_to_vote`,
+      [base64, cid, student_id]
     );
 
     if (result.rows.length === 0) {
@@ -56,7 +60,6 @@ export async function uploadPhoto(req, res) {
     }
 
     const row = result.rows[0];
-    const cid = `db:student:${student_id}`;
 
     if (row.wallet_address) {
       await db.query(
@@ -75,7 +78,7 @@ export async function uploadPhoto(req, res) {
         name: row.name,
         year: row.year,
         gender: row.gender,
-        image_cid: cid,
+image_cid: row.image_cid || cid,
         wallet_address: row.wallet_address,
         walletLinked: Boolean(row.wallet_address),
         walletVerified: Boolean(row.wallet_verified),

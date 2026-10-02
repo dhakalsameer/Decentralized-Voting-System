@@ -216,7 +216,8 @@ export const getCandidatePhoto = async (req, res) => {
                   WHERE LOWER(s.wallet_address) = LOWER(candidates.wallet_address)),
                 (SELECT s2.photo_base64 FROM students s2
                   WHERE s2.student_id = candidates.applied_by)
-              ) AS photo_base64
+              ) AS photo_base64,
+              updated_at
        FROM candidates
        WHERE id::text = $1 OR applied_by = $1 OR LOWER(wallet_address) = LOWER($1)
        LIMIT 1`,
@@ -226,9 +227,18 @@ export const getCandidatePhoto = async (req, res) => {
     if (!base64) {
       return res.status(404).json({ error: "Photo not found" });
     }
+
+    // Stable per-candidate URL, so revalidate on every load via ETag. Without
+    // this the browser kept serving the previous photo for 24h after an upload.
+    const etag = `W/"cand-${ref}-${new Date(result.rows[0].updated_at).getTime()}"`;
+    res.setHeader("ETag", etag);
+    res.setHeader("Cache-Control", "no-cache");
+    if (req.headers["if-none-match"] === etag) {
+      return res.status(304).end();
+    }
+
     const buf = Buffer.from(base64, "base64");
     res.setHeader("Content-Type", "image/jpeg");
-    res.setHeader("Cache-Control", "public, max-age=86400");
     res.send(buf);
   } catch (error) {
     console.error("getCandidatePhoto error:", error);
