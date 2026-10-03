@@ -1,5 +1,6 @@
 import { useState, useContext, useEffect, useCallback } from "react";
 import { API_URL } from "../../config";
+import { adminFetch } from "../../utils/adminApi";
 import { AuthContext } from "../../context/AuthContextValue";
 import { useToast } from "../ui/Toast";
 import SectionHeader from "../ui/SectionHeader";
@@ -46,7 +47,7 @@ export default function GenerateCodes() {
     if (!wallet) return;
     setFetching(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/codes?limit=200&adminWallet=${wallet}`);
+      const res = await adminFetch(`${API_URL}/api/admin/codes?limit=200`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load codes");
       setCodes(data.codes || []);
@@ -65,7 +66,7 @@ export default function GenerateCodes() {
   const loadReminderConfig = useCallback(async () => {
     if (!wallet) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/reminder-config?adminWallet=${wallet}`);
+      const res = await adminFetch(`${API_URL}/api/admin/reminder-config`);
       if (res.ok) setReminderConfig(await res.json());
     } catch (_) {}
   }, [wallet]);
@@ -73,7 +74,7 @@ export default function GenerateCodes() {
   const loadPendingStats = useCallback(async () => {
     if (!wallet) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/pending-codes?adminWallet=${wallet}`);
+      const res = await adminFetch(`${API_URL}/api/admin/pending-codes`);
       if (res.ok) setPendingStats(await res.json());
     } catch (_) {}
   }, [wallet]);
@@ -90,10 +91,10 @@ export default function GenerateCodes() {
     setGeneratedCodes([]);
     setGeneratedMeta(null);
     try {
-      const res = await fetch(`${API_URL}/api/admin/generate-codes`, {
+      const res = await adminFetch(`${API_URL}/api/admin/generate-codes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminWallet: wallet, students }),
+        body: JSON.stringify({ students }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed");
@@ -121,9 +122,8 @@ export default function GenerateCodes() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("adminWallet", wallet);
 
-      const res = await fetch(`${API_URL}/api/admin/upload-codes`, {
+      const res = await adminFetch(`${API_URL}/api/admin/upload-codes`, {
         method: "POST",
         body: formData,
       });
@@ -153,10 +153,10 @@ export default function GenerateCodes() {
         setConfirm(null);
         setRebuildingRoot(true);
         try {
-          const res = await fetch(`${API_URL}/api/admin/rebuild-regcode-merkle-root`, {
+          const res = await adminFetch(`${API_URL}/api/admin/rebuild-regcode-merkle-root`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ adminWallet: wallet }),
+            body: JSON.stringify({}),
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Rebuild failed");
@@ -175,10 +175,10 @@ export default function GenerateCodes() {
     if (!reminderConfig) return;
     setTogglingReminder(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/reminder-config`, {
+      const res = await adminFetch(`${API_URL}/api/admin/reminder-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminWallet: wallet, enabled: !reminderConfig.enabled }),
+        body: JSON.stringify({ enabled: !reminderConfig.enabled }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update");
@@ -194,10 +194,10 @@ export default function GenerateCodes() {
   const handleSendReminderNow = async () => {
     setSendingReminder(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/send-reminders`, {
+      const res = await adminFetch(`${API_URL}/api/admin/send-reminders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminWallet: wallet }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send reminders");
@@ -220,10 +220,10 @@ export default function GenerateCodes() {
   const handleSendSingleEmail = async (studentId) => {
     setSendingEmailMap(prev => ({ ...prev, [studentId]: true }));
     try {
-      const res = await fetch(`${API_URL}/api/admin/send-codes`, {
+      const res = await adminFetch(`${API_URL}/api/admin/send-codes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminWallet: wallet, student_ids: [studentId] }),
+        body: JSON.stringify({ student_ids: [studentId] }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Send failed");
@@ -245,10 +245,10 @@ export default function GenerateCodes() {
   const handleSendEmail = async (studentIds) => {
     setSendingEmail(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/send-codes`, {
+      const res = await adminFetch(`${API_URL}/api/admin/send-codes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminWallet: wallet, student_ids: studentIds }),
+        body: JSON.stringify({ student_ids: studentIds }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Send failed");
