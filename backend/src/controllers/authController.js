@@ -157,11 +157,17 @@ export const loginStudent = async (req, res) => {
       return res.status(400).json({ error: "student_id and password are required" });
     }
 
+    // Normalise here rather than wrapping the column in UPPER() so the unique
+    // index on student_id is still usable. The stored ids are all uppercase, so
+    // "guab4003" or "  GUAB4003  " failed with "Invalid student ID or password"
+    // even though the row existed.
+    const normalizedId = String(student_id).trim().toUpperCase();
+
     const result = await db.query(
       `SELECT student_id, name, password_hash, year, gender, image_cid,
               wallet_address, wallet_verified, eligible_to_vote, registered
        FROM students WHERE student_id = $1`,
-      [student_id]
+      [normalizedId]
     );
 
     if (result.rows.length === 0) {
@@ -419,10 +425,15 @@ export const forgotPassword = async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
+    // Same normalisation as login: stored ids are uppercase, so a lowercase
+    // entry was rejected as an invalid code even when the code was correct.
+    const normalizedId = String(student_id).trim().toUpperCase();
+    const normalizedCode = String(code).replace(/-/g, "").trim().toUpperCase();
+
     // Allow using registration code regardless of `used` status
     const codeResult = await db.query(
       "SELECT id FROM registration_codes WHERE student_id = $1 AND REPLACE(code, '-', '') = $2",
-      [student_id, code]
+      [normalizedId, normalizedCode]
     );
     if (codeResult.rows.length === 0) {
       return res.status(403).json({ error: "Invalid registration code" });
@@ -431,7 +442,7 @@ export const forgotPassword = async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     await db.query(
       "UPDATE students SET password_hash = $1, updated_at = NOW() WHERE student_id = $2",
-      [hashed, student_id]
+      [hashed, normalizedId]
     );
 
     return res.json({ message: "Password reset successfully" });
