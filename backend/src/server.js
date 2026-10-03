@@ -84,12 +84,21 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests — try again later." },
+  // The browser sends a CORS preflight before a cross-origin POST. Counting
+  // it meant each login attempt cost two requests against the budget, and the
+  // preflight itself could be answered with a 429 -- which the browser then
+  // reports as "Failed to fetch" because it never sends the real POST.
+  skip: (req) => req.method === "OPTIONS",
 });
+
+// CORS must run before the limiters. Mounted after them, a 429 was built
+// without Access-Control-Allow-Origin, so a browser could not read the
+// message and surfaced it as an opaque TypeError instead.
+app.use(cors({ origin: origins, credentials: true }));
 
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
-app.use(cors({ origin: origins, credentials: true }));
 app.use(express.json({ limit: "10mb" }));
 
 app.get("/api/health", (req, res) => {
