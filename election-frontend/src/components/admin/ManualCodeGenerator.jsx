@@ -105,10 +105,12 @@ export default function ManualCodeGenerator({ wallet, loading, generatedCodes, g
             ))}
             {merkleRoot && (
               <div className="mt-2 pt-2 border-t border-emerald-500/10">
-                <p className="text-xs font-bold uppercase tracking-wider text-emerald-400/70 mb-1">Merkle Root (On-Chain)</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-400/70 mb-1">Registration Code Merkle Root (On-Chain)</p>
                 <p className="text-xs font-mono text-emerald-300 break-all">{merkleRoot}</p>
                 <p className="text-xs text-app-muted-text mt-1">
-                  Students can verify their code against the blockchain using this root.
+                  Codes are committed to this root before voting opens. At redemption the contract
+                  checks the student's Merkle proof against it, so a code issued later cannot be
+                  redeemed.
                 </p>
               </div>
             )}
