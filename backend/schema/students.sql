@@ -10,7 +10,12 @@ CREATE TABLE IF NOT EXISTS students (
   image_cid       TEXT,
   password_hash   VARCHAR(255),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- Ids are stored canonically (trimmed, uppercase). Login normalises the
+  -- submitted id the same way before looking the student up, so this keeps the
+  -- two in agreement. See z4_students_id_casing.sql.
+  CONSTRAINT students_student_id_canonical
+    CHECK (student_id = upper(btrim(student_id)))
 );
 
 -- Index for fast login lookups by student_id (the primary key already covers this,
