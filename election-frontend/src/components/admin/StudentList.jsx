@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useContext } from "react";
 import * as XLSX from "xlsx";
 import { API_URL } from "../../config";
-import { adminFetch } from "../../utils/adminApi";
 import { AuthContext } from "../../context/AuthContextValue";
 import { useToast } from "../ui/Toast";
 import SectionHeader from "../ui/SectionHeader";
@@ -50,7 +49,7 @@ export default function StudentList() {
     if (!wallet) return;
     setFetching(true);
     try {
-      const res = await adminFetch(`${API_URL}/api/auth/admin/students`);
+      const res = await fetch(`${API_URL}/api/auth/admin/students?adminWallet=${wallet}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load students");
       setStudents(data.students || []);
@@ -71,7 +70,7 @@ export default function StudentList() {
         setConfirm(null);
         setLoading(true);
         try {
-          const res = await adminFetch(`${API_URL}/api/students/${studentId}`, { method: "DELETE" });
+          const res = await fetch(`${API_URL}/api/students/${studentId}?adminWallet=${wallet}`, { method: "DELETE" });
           if (!res.ok) {
             const data = await res.json();
             throw new Error(data.error || "Delete failed");
@@ -130,10 +129,10 @@ export default function StudentList() {
           return;
         }
 
-        const res = await adminFetch(`${API_URL}/api/admin/generate-codes`, {
+        const res = await fetch(`${API_URL}/api/admin/generate-codes`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ students: csvStudents }),
+          body: JSON.stringify({ adminWallet: wallet, students: csvStudents }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Upload failed");
@@ -152,7 +151,7 @@ export default function StudentList() {
   useEffect(() => {
     if (!wallet) return;
     let cancelled = false;
-    adminFetch(`${API_URL}/api/auth/admin/students`)
+    fetch(`${API_URL}/api/auth/admin/students?adminWallet=${wallet}`)
       .then(async (res) => {
         if (cancelled) return;
         const data = await res.json();

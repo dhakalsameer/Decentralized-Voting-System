@@ -5,7 +5,6 @@ import { formatContractError } from "../../utils/errors";
 import SectionHeader from "../ui/SectionHeader";
 import { AuthContext } from "../../context/AuthContextValue";
 import { API_URL } from "../../config";
-import { adminFetch } from "../../utils/adminApi";
 import ConfirmModal from "../ui/ConfirmModal";
 
 const PHASE_NAMES = ["Created", "Registration", "Voting", "Ended"];
@@ -183,7 +182,7 @@ export default function ElectionControl() {
   const loadSyncStatus = async () => {
     if (!wallet) return;
     try {
-      const res = await adminFetch(`${API_URL}/api/voters/merkle-sync-status`);
+      const res = await fetch(`${API_URL}/api/voters/merkle-sync-status?adminWallet=${wallet}`);
       if (!res.ok) return;
       const data = await res.json();
       setSyncStatus(data);
@@ -327,8 +326,8 @@ export default function ElectionControl() {
                 let blocking = false;
                 try {
                   const [verStatus, syncStatus] = await Promise.all([
-                    adminFetch(`${API_URL}/api/voters/verification-status`).then(r => r.json()),
-                    adminFetch(`${API_URL}/api/voters/merkle-sync-status`).then(r => r.json()),
+                    fetch(`${API_URL}/api/voters/verification-status`).then(r => r.json()),
+                    fetch(`${API_URL}/api/voters/merkle-sync-status`).then(r => r.json()),
                   ]);
                   if (verStatus.unverified > 0) {
                     warningMsg = `⚠️ ${verStatus.unverified} student(s) have linked wallets but are NOT verified. ` +
@@ -487,7 +486,7 @@ export default function ElectionControl() {
                     }
                     setSyncingWhitelist(true);
                     try {
-                      const res = await adminFetch(`${API_URL}/api/voters/rebuild-merkle`, { method: "POST" });
+                      const res = await fetch(`${API_URL}/api/voters/rebuild-merkle?adminWallet=${wallet}`, { method: "POST" });
                       const data = await res.json();
                       if (!res.ok) throw new Error(data.error || "Rebuild failed");
                       success(`Merkle roots updated on-chain`, { txHash: data.txHash, duration: 8000 });

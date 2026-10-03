@@ -1,6 +1,5 @@
 import { useState, useEffect, useContext, useCallback } from "react";
 import { API_URL } from "../../config";
-import { adminFetch } from "../../utils/adminApi";
 import { AuthContext } from "../../context/AuthContextValue";
 import { useToast } from "../ui/Toast";
 import SectionHeader from "../ui/SectionHeader";
@@ -31,7 +30,7 @@ export default function VerifyVoter({ onWhitelisted }) {
     if (!isAdmin) return;
     setLoading(true);
     try {
-      const res = await adminFetch(`${API_URL}/api/auth/admin/students`);
+      const res = await fetch(`${API_URL}/api/auth/admin/students?adminWallet=${wallet}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load students");
       setStudents(data.students || []);
@@ -48,7 +47,7 @@ export default function VerifyVoter({ onWhitelisted }) {
   useEffect(() => {
     if (!isAdmin) return;
     let cancelled = false;
-    adminFetch(`${API_URL}/api/auth/admin/students`)
+    fetch(`${API_URL}/api/auth/admin/students?adminWallet=${wallet}`)
       .then(async (res) => {
         if (cancelled) return;
         const data = await res.json();
@@ -87,10 +86,10 @@ export default function VerifyVoter({ onWhitelisted }) {
 
   const verifyStudent = async (studentId) => {
     try {
-      const res = await adminFetch(`${API_URL}/api/voters/verify-bulk`, {
+      const res = await fetch(`${API_URL}/api/voters/verify-bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ student_ids: [studentId], version: "v3" }),
+        body: JSON.stringify({ student_ids: [studentId], version: "v3", adminWallet: wallet }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Verification failed");
@@ -110,10 +109,10 @@ export default function VerifyVoter({ onWhitelisted }) {
     }
     setVerifyLoading(true);
     try {
-      const res = await adminFetch(`${API_URL}/api/voters/verify-bulk`, {
+      const res = await fetch(`${API_URL}/api/voters/verify-bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ student_ids: ids, version: "v3" }),
+        body: JSON.stringify({ student_ids: ids, version: "v3", adminWallet: wallet }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Batch verification failed");
@@ -136,10 +135,10 @@ export default function VerifyVoter({ onWhitelisted }) {
         setConfirm(null);
         setRevokeLoading(true);
         try {
-          const res = await adminFetch(`${API_URL}/api/voters/revoke`, {
+          const res = await fetch(`${API_URL}/api/voters/revoke`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ student_id: studentId }),
+            body: JSON.stringify({ student_id: studentId, adminWallet: wallet }),
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Revoke failed");
@@ -167,10 +166,10 @@ export default function VerifyVoter({ onWhitelisted }) {
         setConfirm(null);
         setBulkRevokeLoading(true);
         try {
-          const res = await adminFetch(`${API_URL}/api/voters/revoke-bulk`, {
+          const res = await fetch(`${API_URL}/api/voters/revoke-bulk`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ student_ids: ids }),
+            body: JSON.stringify({ student_ids: ids, adminWallet: wallet }),
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Bulk revoke failed");

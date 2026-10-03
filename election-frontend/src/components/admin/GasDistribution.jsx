@@ -1,6 +1,5 @@
 import { useEffect, useState, useContext, useRef } from "react";
 import { API_URL } from "../../config";
-import { adminFetch } from "../../utils/adminApi";
 import { AuthContext } from "../../context/AuthContextValue";
 import { useToast } from "../ui/Toast";
 import { useBalance } from "../../hooks/useBalance";
@@ -141,7 +140,7 @@ export default function GasDistribution() {
 
   useEffect(() => {
     if (!wallet) return;
-    adminFetch(`${API_URL}/api/distribution/summary`)
+    fetch(`${API_URL}/api/distribution/summary?adminWallet=${wallet}`)
       .then(r => r.json())
       .then(d => setSummary(d))
       .catch(() => {});
@@ -342,14 +341,15 @@ function GasDistribute() {
     setSendProgress(dryRun ? null : { sent: 0, failed: 0, total: selectedCount });
 
     try {
-      const res = await adminFetch(`${API_URL}/api/distribution/send`, {
+      const res = await fetch(`${API_URL}/api/distribution/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            years: selectedYears,
-            amount: amount,
-            dryRun,
-          }),
+        body: JSON.stringify({
+          years: selectedYears,
+          amount: amount,
+          dryRun,
+          adminWallet: wallet,
+        }),
       });
 
       const data = await res.json();
@@ -391,10 +391,10 @@ function GasDistribute() {
 
         setDistributing(true);
         try {
-          const res = await adminFetch(`${API_URL}/api/distribution/retry`, {
+          const res = await fetch(`${API_URL}/api/distribution/retry`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ logIds, amount }),
+            body: JSON.stringify({ logIds, amount, adminWallet: wallet }),
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Retry failed");

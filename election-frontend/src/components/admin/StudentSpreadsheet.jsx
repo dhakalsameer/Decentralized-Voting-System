@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useContext, useRef } from "react";
 import * as XLSX from "xlsx";
 import { API_URL } from "../../config";
-import { adminFetch } from "../../utils/adminApi";
 import { AuthContext } from "../../context/AuthContextValue";
 import { useToast } from "../ui/Toast";
 import ConfirmModal from "../ui/ConfirmModal";
@@ -42,9 +41,9 @@ export default function StudentSpreadsheet() {
     setError("");
     try {
       const url = yearTab === "all"
-        ? `${API_URL}/api/auth/admin/students`
-        : `${API_URL}/api/auth/admin/students?year=${yearTab}`;
-      const res = await adminFetch(url);
+        ? `${API_URL}/api/auth/admin/students?adminWallet=${wallet}`
+        : `${API_URL}/api/auth/admin/students?adminWallet=${wallet}&year=${yearTab}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load students");
 
@@ -149,7 +148,7 @@ export default function StudentSpreadsheet() {
           setConfirm(null);
           setDeleting(true);
           try {
-            const res = await adminFetch(`${API_URL}/api/students/${studentId}`, { method: "DELETE" });
+            const res = await fetch(`${API_URL}/api/students/${studentId}?adminWallet=${wallet}`, { method: "DELETE" });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Delete failed");
             success(`Deleted ${studentId}`);
@@ -178,10 +177,10 @@ export default function StudentSpreadsheet() {
     setSaving(true);
     setError("");
     try {
-      const res = await adminFetch(`${API_URL}/api/auth/admin/students/batch-upsert`, {
+      const res = await fetch(`${API_URL}/api/auth/admin/students/batch-upsert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ students: dirty }),
+        body: JSON.stringify({ adminWallet: wallet, students: dirty }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Save failed");
@@ -213,10 +212,10 @@ export default function StudentSpreadsheet() {
     setGeneratedCodes([]);
     setGeneratedMeta(null);
     try {
-      const res = await adminFetch(`${API_URL}/api/admin/generate-codes`, {
+      const res = await fetch(`${API_URL}/api/admin/generate-codes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ students: valid }),
+        body: JSON.stringify({ adminWallet: wallet, students: valid }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed");
@@ -245,7 +244,7 @@ export default function StudentSpreadsheet() {
         setConfirm(null);
         setRebuildingMerkle(true);
         try {
-          const res = await adminFetch(`${API_URL}/api/voters/rebuild-merkle`, { method: "POST" });
+          const res = await fetch(`${API_URL}/api/voters/rebuild-merkle?adminWallet=${wallet}`, { method: "POST" });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Rebuild failed");
           success(`Merkle roots updated on-chain`, { txHash: data.txHash, duration: 8000 });

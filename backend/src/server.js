@@ -96,21 +96,8 @@ const authLimiter = rateLimit({
 // message and surfaced it as an opaque TypeError instead.
 app.use(cors({ origin: origins, credentials: true }));
 
-// Signature verification is CPU-bound and the admin endpoints sit outside the
-// login limiter, so they get their own budget.
-const adminAuthLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests — try again later." },
-  skip: (req) => req.method === "OPTIONS",
-});
-
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
-app.use("/api/auth/admin/challenge", adminAuthLimiter);
-app.use("/api/auth/admin/verify", adminAuthLimiter);
 
 app.use(express.json({ limit: "10mb" }));
 

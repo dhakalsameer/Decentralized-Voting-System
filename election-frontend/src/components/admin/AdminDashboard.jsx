@@ -9,7 +9,6 @@ import { useBalance } from "../../hooks/useBalance";
 import { socket } from "../../socket";
 import { useToast } from "../ui/Toast";
 import { API_URL } from "../../config";
-import { adminFetch } from "../../utils/adminApi";
 
 const ETH_ICON = (
   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -36,7 +35,7 @@ export default function AdminDashboard() {
   const checkSync = useCallback(async () => {
     if (!wallet) return;
     try {
-      const res = await adminFetch(`${API_URL}/api/voters/merkle-sync-status`);
+      const res = await fetch(`${API_URL}/api/voters/merkle-sync-status?adminWallet=${wallet}`);
       if (!res.ok) return;
       setSyncStatus(await res.json());
     } catch {}

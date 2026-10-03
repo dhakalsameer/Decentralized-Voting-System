@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../../config";
-import { adminFetch } from "../../utils/adminApi";
 import { useToast } from "../ui/Toast";
 import StatCard from "../ui/StatCard";
 import EmptyState from "../ui/EmptyState";
@@ -53,7 +52,7 @@ export default function GasHistory({ wallet }) {
   const loadSummary = async () => {
     if (!wallet) return;
     try {
-      const res = await adminFetch(`${API_URL}/api/distribution/summary`);
+      const res = await fetch(`${API_URL}/api/distribution/summary?adminWallet=${wallet}`);
       if (res.ok) {
         const data = await res.json();
         if (data.totalDistributions > 0) setSummary(data);
@@ -84,9 +83,9 @@ export default function GasHistory({ wallet }) {
     if (!wallet) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: p, limit: "20" });
+      const params = new URLSearchParams({ page: p, limit: "20", adminWallet: wallet });
       if (yearFilter !== "all") params.set("year", yearFilter);
-      const res = await adminFetch(`${API_URL}/api/distribution/history?${params}`);
+      const res = await fetch(`${API_URL}/api/distribution/history?${params}`);
       if (!res.ok) throw new Error("Failed to load history");
       const data = await res.json();
       setLogs(data.logs || []);
